@@ -50,10 +50,7 @@ export class UniTests extends ThreeTsEngine.SceneEntity {
                                                 new THREE.Vector3(250,250,100),
                                                 new THREE.Vector2(500,500));
         // Create a quad tree
-        let quadTree = new PlanetTs.QuadTreeChunk(chunk);
-
-        PlanetTs.
-
+        let quadTreeNode = new PlanetTs.QuadTreeChunkNode(chunk);
     }
 
 

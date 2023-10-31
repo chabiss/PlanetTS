@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import * as ThreeTsEngine from './ThreeTsEngine.js'
 import * as MathHelper from './MathHelper.js'
 

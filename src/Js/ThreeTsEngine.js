@@ -1,7 +1,33 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { GUI } from "dat.gui";
-export class GraphicEngine {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SceneEntity = exports.GraphicEngine = void 0;
+const THREE = __importStar(require("three"));
+const OrbitControls_js_1 = require("three/examples/jsm/controls/OrbitControls.js");
+const dat_gui_1 = require("dat.gui");
+class GraphicEngine {
     scene;
     camera;
     renderer;
@@ -31,12 +57,12 @@ export class GraphicEngine {
         const gridHelper = new THREE.GridHelper(500, 50);
         this.scene.add(gridHelper);
         // Create OrbitControl
-        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls = new OrbitControls_js_1.OrbitControls(this.camera, this.renderer.domElement);
         this.orbitControls.target.set(0, 0, 0);
         this.orbitControls.object.position.set(0, 0, -300);
         this.orbitControls.update();
         // Create the GUI
-        this.gui = new GUI();
+        this.gui = new dat_gui_1.GUI();
         this.gui.addFolder("General");
         this.guiParams = {
             General: {}
@@ -95,7 +121,8 @@ export class GraphicEngine {
         });
     }
 }
-export class SceneEntity {
+exports.GraphicEngine = GraphicEngine;
+class SceneEntity {
     graphicEngine;
     isAttached;
     name;
@@ -119,4 +146,5 @@ export class SceneEntity {
         this.isAttached = value;
     }
 }
+exports.SceneEntity = SceneEntity;
 //# sourceMappingURL=ThreeTsEngine.js.map

@@ -33,8 +33,7 @@ export enum TerrainResolution {
 };
 
 export class TerrainChunk {
-    private mesh : THREE.Mesh;
-    private planes : THREE.Mesh[];
+    private plane : THREE.Mesh;
     private resolution : TerrainResolution;        // resolution of the chunk
     private centerWorld : THREE.Vector3;    // Center of the chunk in world coordinates
     private dimensions : THREE.Vector2;    // Dimension of the chunk
@@ -48,19 +47,33 @@ export class TerrainChunk {
         this.dimensions = dimensions;
     }
 
-    public GeneratePlane() : THREE.Mesh {
-        let planeGeometry = new THREE.PlaneGeometry(this.dimensions.x, this.dimensions.y, this.resolution, this.resolution);
-        let planeMaterial = new THREE.MeshStandardMaterial({color: this.ResolutionToColor(this.resolution), side: THREE.FrontSide});
-        let plane = new THREE.Mesh(planeGeometry, planeMaterial);
-        plane.rotateX(-Math.PI / 2);
-        plane.position.set(this.centerWorld.x-this.dimensions.x, this.centerWorld.y-this.dimensions.y, this.centerWorld.z);   
+    public EnsurePlane() : THREE.Mesh {
+        
+        // If we already have a plane, return null to prevent generating a new one
+        if  (this.plane == null) {
+            let planeGeometry = new THREE.PlaneGeometry(this.dimensions.x, this.dimensions.y, this.resolution, this.resolution);
+            let planeMaterial = new THREE.MeshStandardMaterial({color: this.ResolutionToColor(this.resolution), side: THREE.FrontSide});
+            let plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotateX(-Math.PI / 2);
+            plane.position.set(this.centerWorld.x-this.dimensions.x, this.centerWorld.y-this.dimensions.y, this.centerWorld.z);   
+            this.plane = plane;
+        }
+    
+        return this.plane;
+    }
+
+    public RemovePlane() : THREE.Mesh {
+        let plane = this.plane;
+        this.plane = null;
         return plane;
     }
 
-    public get Mesh() : THREE.Mesh {return this.mesh; };
+    
+    public get Plane() : THREE.Mesh {return this.plane; };
     public get Resolution() : number {return this.resolution; };
     public get CenterWorld() : THREE.Vector3 {return this.centerWorld; };
     public get Dimensions() : THREE.Vector2 {return this.dimensions; };
+    public get Diagonal() : number {return this.dimensions.length(); };
 
     private ResolutionToColor(resolution : TerrainResolution) : number {
         switch(resolution) {
@@ -82,27 +95,46 @@ export class TerrainChunk {
     }
 }
 
+export enum TraverseContextMode {
+    ADD,
+    REMOVE   
+}
+
 export class TraverseContext {
     private addedChunks : TerrainChunk[];
     private removedChunks : TerrainChunk[];
     private position : THREE.Vector3;
+    private mode : TraverseContextMode;
 
-    constructor(position : THREE.Vector3) {
+    constructor(position : THREE.Vector3, mode : TraverseContextMode = TraverseContextMode.ADD) {
         this.addedChunks = [];
         this.removedChunks = [];
         this.position = position;
+        this.mode = mode;
     }
 
     public AddChunk(chunk : TerrainChunk) : void {
+        
+        if(chunk.Plane != null) {
+            return;
+        }
+
         this.addedChunks.push(chunk);
     }
 
     public RemoveChunk(chunk : TerrainChunk) : void {
+        
+        if(chunk.Plane == null) {   
+            return;
+        }
+
         this.removedChunks.push(chunk);
     }
 
     public get AddedChunks() : TerrainChunk[] {return this.addedChunks; };
     public get RemovedChunks() : TerrainChunk[] {return this.removedChunks; };
+    public set Mode(mode : TraverseContextMode) {this.mode = mode; };
+    public get Position() : THREE.Vector3 {return this.position; };
 }
 
 
@@ -133,7 +165,7 @@ export class QuadTreeChunkNode {
 
         // Compute the center of the children 
         // Bottom left
-        let childCenter = new THREE.Vector3(this.chunk.CenterWorld.x - childDimension.x / 2, childDimension.y - this.chunk.Dimensions.y / 2, this.chunk.CenterWorld.z);
+        let childCenter = new THREE.Vector3(this.chunk.CenterWorld.x - childDimension.x / 2, this.chunk.CenterWorld.y - this.chunk.Dimensions.y / 2, this.chunk.CenterWorld.z);
         this.children.push(new QuadTreeChunkNode(new TerrainChunk(this.chunk.Resolution * 2, childCenter, childDimension)));
 
         // Bottom right
@@ -153,36 +185,42 @@ export class QuadTreeChunkNode {
         return this.chunk.CenterWorld.distanceTo(position);
     }
 
-    public Traverse() : void {
+    public Traverse(context : TraverseContext) : void {
 
+        let  modeForChildren = context.Mode;
+
+        if (context.Mode == TraverseContextMode.ADD) {
+            // check the distance to the center of the chunk with context.Position
+            let distance = this.DistanceTo(context.Position);
+
+            // If the distance is greater than the diagonal of the chunk, or if we're in remove mode, we can remove the chunk
+            if (distance > this.chunk.Diagonal) {
+                modeForChildren = TraverseContextMode.REMOVE;
+                context.AddChunk(this.chunk);
+            }
+            else {
+                // If we're inside the diagonal, ensure the children and traverse them
+                this.EnsureChildren();
+                // Outer plan will not be visible as we will recures into the children     
+                context.RemoveChunk(this.chunk);
+            }
+        }else {
+            // If we're in remove mode, we can remove the chunk
+            context.RemoveChunk(this.chunk);
+        }
+        
         if (this.children != null) {
+            context.Mode = modeForChildren;
             for (let i = 0; i < this.children.length; i++) {
-                this.children[i].Traverse();
+                this.children[i].Traverse(context);
             }
         }
+
+        if (modeForChildren == TraverseContextMode.REMOVE) {
+            // remove the children 
+            this.children = null;
+        }
     }
-}
-
-export class QuadTreeChunk {
-    private rootNode : QuadTreeChunkNode;
-    
-    constructor(terrainChunk : TerrainChunk) {
-        this.rootNode = new QuadTreeChunkNode(terrainChunk);
-    }
-
-    public Compute(centerWorld : THREE.Vector3) : QuadTreeChunkNode[] {
-        // Compute the chunk that contains the world position
-        this.rootNode.EnsureChildren();
-
-        QuadTreeChunkNode[] result = []
-            
-        return null;
-    }
-
-    private ComputeChunk(worldPosition: THREE.Vector3) : QuadTreeChunkNode[] {
-
-    }
-
 }
 
 class TerrainChunkManager { 
@@ -190,38 +228,58 @@ class TerrainChunkManager {
     private cachedPosition : THREE.Vector3;
     private initialFaceDimension : number;
 
+    // Create the 6 QuadTreeChunk and Nodes for each of the faces
+    private quadTreeChunkNodes : QuadTreeChunkNode[];
+ 
     constructor(initialFaceDimension : number) {
+
        this.cachedPosition = new THREE.Vector3(0,0,0);     
        this.initialFaceDimension = initialFaceDimension;
+
+       // Create the 6 QuadTreeChunk and Nodes for each of the faces
+
+       // Top Node 
+       let chunkNode = new QuadTreeChunkNode(new TerrainChunk( TerrainResolution.RES_50, new THREE.Vector3(250,250,100), new THREE.Vector2(500,500)));
+       this.quadTreeChunkNodes.push(chunkNode);
+
     }
+
+    
 
     public Update(engine : PlanetTsEngine, worldPosition : THREE.Vector3) : void {
-        // Compute the chunk that contains the world position
-        let chunk = this.ComputeChunk(worldPosition);
-        // Generate the chunk if needed
-        this.GenerateChunk(engine, chunk);
-        // Remove the chunks that are too far
-        this.RemoveFarChunks(engine, chunk);
-    }
+        // This method will walk the quadtree and generate the chunks that are needed
+        // Algorigthm goes like this:
+        // 1. Start at the root, walk the children of the quadtree and calculate the distance from worldPosition to each of the children center point
+        // 2. For each children visited, ensure their terain chunk is the list of visited chunks
+        // 3. For the other visited nodes, make sure that all descendants are removed from the list of visited chunks
+        // 4. For the visited child node with the smallest distance, remove his chunk from visited chunks, and ensure the children node are visited
+        // 5. Recurse into the children node with the smallest distance
+        
+        // Create a new TraverseContext
+        let context = new TraverseContext(worldPosition);
+        // Go through each of the quadTreeChunkNodes and traverse them
+        this.quadTreeChunkNodes.forEach(chunkNode => {
+            chunkNode.Traverse(context);
+        });
 
-    ComputeChunk(worldPosition: THREE.Vector3) : [TerrainChunk[], TerrainChunk[]] {
+        // For each chunk in the context, ensure the plane is generated and add it to the scene
+        context.AddedChunks.forEach(chunk => {
+            let plane = chunk.EnsurePlane();
+            if (plane != null) {
+                engine.AddObject3DToScene(plane);
+            }
+        });
 
-        // If the cache world position didn't change, return no changes
-        if (this.cachedPosition.equals(worldPosition)) {
-            return null;
-        }
-
-        // Compute the chunk that contains the world position        
-
-        return null
-    }
-    GenerateChunk(engine: PlanetTsEngine, chunk: any) {
-        throw new Error('Method not implemented.');
-    }
-    RemoveFarChunks(engine: PlanetTsEngine, chunk: any) {
-        throw new Error('Method not implemented.');
+        // For each removed chunk, remove it from the scene and remove the plane
+        context.RemovedChunks.forEach(chunk => {
+            let plane = chunk.RemovePlane();
+            if (plane != null) {
+                engine.RemoveObject3DFromScene(plane);
+            }
+        });
     }
 }
+    
 
 class TerrainSceneEntity extends ThreeTsEngine.SceneEntity {
     private mesh : THREE.Mesh;

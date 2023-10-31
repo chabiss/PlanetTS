@@ -2,7 +2,7 @@
     "compilerOptions" : {
         "outDir": "Js",
         "target": "ESNext",
-        "module": "ESNext",
+        "module": "NodeNext",
         "lib": ["dom", "es2015"],
         "moduleResolution": "nodenext",
         "sourceMap": true,

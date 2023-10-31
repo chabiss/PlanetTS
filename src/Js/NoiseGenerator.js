@@ -1,9 +1,12 @@
-import { createNoise2D } from 'simplex-noise';
-export class SimplexNoiseGenerator {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SimplexNoiseGenerator = void 0;
+const simplex_noise_1 = require("simplex-noise");
+class SimplexNoiseGenerator {
     noiseFunc;
     params;
     constructor(param) {
-        this.noiseFunc = createNoise2D(() => Math.random());
+        this.noiseFunc = (0, simplex_noise_1.createNoise2D)(() => Math.random());
         this.params = param;
     }
     // Noise parameters
@@ -38,4 +41,5 @@ export class SimplexNoiseGenerator {
         return Math.pow(total, exponentiation) * height;
     }
 }
+exports.SimplexNoiseGenerator = SimplexNoiseGenerator;
 //# sourceMappingURL=NoiseGenerator.js.map
