@@ -588,7 +588,7 @@ class TerrainSceneEntity extends ThreeTsEngine.SceneEntity {
             }),
             "simplex": new SimplexNoiseGenerator(this.Engine.GuiParams.Noise)
         };
-        this.Engine.Camera.position.set(0, 2000, 1000);
+        this.Engine.Camera.position.set(0, 0, 3000);
         this.Engine.Camera.lookAt(0, 0, 0);
         // Attach the terrainChunkManager
         this.terrainChunkManager.Attach(this.Engine);
