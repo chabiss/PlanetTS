@@ -1,13 +1,13 @@
 import * as ThreeTsEngine from './ThreeTsEngine.js'
 import * as MathHelper from './MathHelper.js'
-import { createNoise2D } from 'simplex-noise';
+import { createNoise3D } from 'simplex-noise';
 
 export class SimplexNoiseGenerator implements ThreeTsEngine.IHeightGenerator {
     private noiseFunc : any;
     private params : any;
     
     constructor(param : any) {
-        this.noiseFunc = createNoise2D(() => Math.random());
+        this.noiseFunc = createNoise3D(() => Math.random());
         this.params = param;
     }
 
@@ -19,13 +19,13 @@ export class SimplexNoiseGenerator implements ThreeTsEngine.IHeightGenerator {
      // "exponentiation": 4.5, 
      // "height": 300 };
 
-    GeHeightFromNCoord(x : number, y : number): number {
-        let scale = this.params.Noise.scale;
-        let octaves = this.params.Noise.octaves;
-        let persistence = this.params.Noise.persistence;
-        let lacunarity = this.params.Noise.lacunarity;
-        let exponentiation = this.params.Noise.exponentiation;
-        let height = this.params.Noise.height;
+    GeHeightFromNCoord(x : number, y : number, z : number): number {
+        let scale = this.params.scale;
+        let octaves = this.params.octaves;
+        let persistence = this.params.persistence;
+        let lacunarity = this.params.lacunarity;
+        let exponentiation = this.params.exponentiation;
+        let height = this.params.height;
         let frequency = 1.0;
         let amplitude = 1.0;
         let normalization = 0;
@@ -33,10 +33,11 @@ export class SimplexNoiseGenerator implements ThreeTsEngine.IHeightGenerator {
         const G = 2.0 ** (-persistence);
         const xs = x / scale;
         const ys = y / scale;
+        const zs = z / scale;
 
         for (let o = 0; o < octaves; o++) {
             const noiseValue = this.noiseFunc(
-                xs * frequency, ys * frequency) * 0.5 + 0.5;
+                xs * frequency, ys * frequency, zs * frequency) * 0.5 + 0.5;
             total += noiseValue * amplitude;
             normalization += amplitude;
             amplitude *= G;

@@ -1,55 +1,68 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DoBilinearInterpolation = exports.Saturate = exports.Clamp = exports.Smootherstep = exports.Smoothstep = exports.Lerp = exports.GetRandomIntNumber = exports.GetRandomNormalizedNumber = exports.GetRandomNumber = void 0;
 // Return a random integer between min and max
-function GetRandomNumber(min, max) {
+export function GetRandomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-exports.GetRandomNumber = GetRandomNumber;
 // return a normalized random number between -1 and 1
-function GetRandomNormalizedNumber() {
+export function GetRandomNormalizedNumber() {
     const r = Math.random() + Math.random() + Math.random() + Math.random();
     return (r / 4.0) * 2.0 - 1;
 }
-exports.GetRandomNormalizedNumber = GetRandomNormalizedNumber;
 // Return a random integer number between min and max
-function GetRandomIntNumber(min, max) {
+export function GetRandomIntNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-exports.GetRandomIntNumber = GetRandomIntNumber;
 // Lerps between two numbers
-function Lerp(a, b, t) {
+export function Lerp(a, b, t) {
     return a + (b - a) * t;
 }
-exports.Lerp = Lerp;
 // Smoothstep between two numbers
-function Smoothstep(a, b, t) {
+export function Smoothstep(a, b, t) {
     const x = Math.max(0, Math.min(1, (t - a) / (b - a)));
     return x * x * (3 - 2 * x);
 }
-exports.Smoothstep = Smoothstep;
 // Smootherstep between two numbers
-function Smootherstep(a, b, t) {
+export function Smootherstep(a, b, t) {
     const x = Math.max(0, Math.min(1, (t - a) / (b - a)));
     return x * x * x * (x * (x * 6 - 15) + 10);
 }
-exports.Smootherstep = Smootherstep;
 // Clamp a number between a min and max value
-function Clamp(value, min, max) {
+export function Clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
-exports.Clamp = Clamp;
 // saturate a number between 0 and 1
-function Saturate(value) {
+export function Saturate(value) {
     return Clamp(value, 0, 1);
 }
-exports.Saturate = Saturate;
 // Return binear interpolation between four numbers
-function DoBilinearInterpolation(x11, x12, x21, x22, x, y) {
+export function DoBilinearInterpolation(x11, x12, x21, x22, x, y) {
     const r1 = Lerp(x11, x12, x);
     const r2 = Lerp(x21, x22, x);
     const r = Lerp(r1, r2, y);
     return r;
 }
-exports.DoBilinearInterpolation = DoBilinearInterpolation;
+export class LinearSpline {
+    _points;
+    _lerp;
+    constructor(lerp) {
+        this._points = [];
+        this._lerp = lerp;
+    }
+    AddPoint(t, d) {
+        this._points.push([t, d]);
+    }
+    Get(t) {
+        let p1 = 0;
+        for (let i = 0; i < this._points.length; i++) {
+            if (this._points[i][0] >= t) {
+                break;
+            }
+            p1 = i;
+        }
+        const p2 = Math.min(this._points.length - 1, p1 + 1);
+        if (p1 == p2) {
+            return this._points[p1][1];
+        }
+        return this._lerp((t - this._points[p1][0]) / (this._points[p2][0] - this._points[p1][0]), this._points[p1][1], this._points[p2][1]);
+    }
+}
 //# sourceMappingURL=MathHelper.js.map

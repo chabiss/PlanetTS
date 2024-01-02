@@ -2,9 +2,9 @@
     "compilerOptions" : {
         "outDir": "Js",
         "target": "ESNext",
-        "module": "NodeNext",
+        "module": "ESNext",
         "lib": ["dom", "es2015"],
-        "moduleResolution": "nodenext",
+        "moduleResolution": "node",
         "sourceMap": true,
         //"outFile": "./js/PlanetTs.js"
     }

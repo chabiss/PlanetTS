@@ -53,7 +53,7 @@ export class HeightMap implements ThreeTsEngine.IHeightGenerator {
         return height;
     }
 
-    GeHeightFromNCoord(x : number, y : number) : number {
+    GeHeightFromNCoord(x : number, y : number, z : number) : number {
         let x1 = x * this.imageWidth;
         let y1 = y * this.imageHeight; 
         let pixel = this.GetHeight(x1, y1);

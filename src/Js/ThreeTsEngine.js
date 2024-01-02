@@ -1,33 +1,7 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SceneEntity = exports.GraphicEngine = void 0;
-const THREE = __importStar(require("three"));
-const OrbitControls_js_1 = require("three/examples/jsm/controls/OrbitControls.js");
-const dat_gui_1 = require("dat.gui");
-class GraphicEngine {
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { GUI } from "dat.gui";
+export class GraphicEngine {
     scene;
     camera;
     renderer;
@@ -39,30 +13,68 @@ class GraphicEngine {
     textureLoader;
     loadingManager;
     textures;
+    // create a dictionay of keys that map to a boolean value
+    keyState = {};
+    // Some keys map
+    // Define an object to hold the state of the keys
+    static Keys = {
+        LEFT_ARROW: 37,
+        RIGHT_ARROW: 39,
+        UP_ARROW: 38,
+        DOWN_ARROW: 40,
+        SPACE: 32,
+        SHIFT: 16,
+        CTRL: 17,
+        ALT: 18,
+        PAGE_UP: 33,
+        PAGE_DOWN: 34,
+        KEYPAD_PLUS: 107,
+        KEYPAD_MINUS: 109,
+        KEYPAD_MULTIPLY: 106,
+        KEYPAD_DIVIDE: 111,
+        KEYPAD_0: 96,
+        KEYPAD_1: 97,
+        KEYPAD_2: 98,
+        KEYPAD_3: 99,
+        KEYPAD_4: 100,
+        KEYPAD_5: 101,
+        KEYPAD_6: 102,
+        KEYPAD_7: 103,
+        KEYPAD_8: 104,
+        KEYPAD_9: 105,
+    };
     constructor() {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
         this.renderer = new THREE.WebGLRenderer({
             canvas: document.querySelector('#target')
         });
         window.addEventListener('resize', () => {
             this.OnWindowResize();
         });
+        window.addEventListener('keydown', (event) => {
+            this.HandleKeyDown(event);
+        });
+        window.addEventListener('keyup', (event) => {
+            this.HandleKeyUp(event);
+        });
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.camera.position.setZ(30);
+        // position the camera to look at positive z axis
+        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+        this.camera.position.setZ(300);
         // initialize the Scenes
         this.sceneEntities = [];
         // Create the grid helper
-        const gridHelper = new THREE.GridHelper(500, 50);
-        this.scene.add(gridHelper);
+        // const gridHelper = new THREE.GridHelper(500, 50);
+        // this.scene.add(gridHelper);
         // Create OrbitControl
-        this.orbitControls = new OrbitControls_js_1.OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
         this.orbitControls.target.set(0, 0, 0);
-        this.orbitControls.object.position.set(0, 0, -300);
+        this.orbitControls.object.position.set(0, 0, 300);
         this.orbitControls.update();
         // Create the GUI
-        this.gui = new dat_gui_1.GUI();
+        this.gui = new GUI();
         this.gui.addFolder("General");
         this.guiParams = {
             General: {}
@@ -74,6 +86,7 @@ class GraphicEngine {
     }
     get Gui() { return this.gui; }
     get GuiParams() { return this.guiParams; }
+    get Camera() { return this.camera; }
     OnWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
@@ -100,6 +113,14 @@ class GraphicEngine {
         sceneEntity.Attach();
         this.sceneEntities.push(sceneEntity);
     }
+    HandleKeyUp(event) {
+        // map the key to the key state in the dictionary'
+        this.keyState[event.keyCode] = false;
+    }
+    HandleKeyDown(event) {
+        // map the key to the key state in the dictionary'
+        this.keyState[event.keyCode] = true;
+    }
     DetachSceneEntity(sceneEntity) {
         let index = this.sceneEntities.indexOf(sceneEntity);
         if (index == -1) {
@@ -108,6 +129,15 @@ class GraphicEngine {
         sceneEntity.Detach();
         sceneEntity.Engine = null;
         this.sceneEntities.splice(index, 1);
+    }
+    CameraPosition() {
+        return this.camera.position;
+    }
+    GetSceneEntity(entityName) {
+        let result = this.sceneEntities.find((node) => {
+            return node.Name == entityName;
+        });
+        return result;
     }
     GetTexture(texturePath, onLoad) {
         // if the texture is already loaded, return it
@@ -120,9 +150,23 @@ class GraphicEngine {
             onLoad(result.image);
         });
     }
+    EnableFrameMode(enable) {
+        // for each scene mesh in the scene, set the wireframe mode
+        this.scene.traverse((node) => {
+            if (node instanceof THREE.Mesh) {
+                node.material.wireframe = enable;
+            }
+        });
+    }
+    IskeyPressed(key) {
+        // check if the entry exists in the dictionary
+        if (this.keyState[key] == null) {
+            return false;
+        }
+        return this.keyState[key];
+    }
 }
-exports.GraphicEngine = GraphicEngine;
-class SceneEntity {
+export class SceneEntity {
     graphicEngine;
     isAttached;
     name;
@@ -146,5 +190,4 @@ class SceneEntity {
         this.isAttached = value;
     }
 }
-exports.SceneEntity = SceneEntity;
 //# sourceMappingURL=ThreeTsEngine.js.map

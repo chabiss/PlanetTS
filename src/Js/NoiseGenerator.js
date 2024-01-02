@@ -1,12 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SimplexNoiseGenerator = void 0;
-const simplex_noise_1 = require("simplex-noise");
-class SimplexNoiseGenerator {
+import { createNoise3D } from 'simplex-noise';
+export class SimplexNoiseGenerator {
     noiseFunc;
     params;
     constructor(param) {
-        this.noiseFunc = (0, simplex_noise_1.createNoise2D)(() => Math.random());
+        this.noiseFunc = createNoise3D(() => Math.random());
         this.params = param;
     }
     // Noise parameters
@@ -16,13 +13,13 @@ class SimplexNoiseGenerator {
     // "lacunarity": 1.8, 
     // "exponentiation": 4.5, 
     // "height": 300 };
-    GeHeightFromNCoord(x, y) {
-        let scale = this.params.Noise.scale;
-        let octaves = this.params.Noise.octaves;
-        let persistence = this.params.Noise.persistence;
-        let lacunarity = this.params.Noise.lacunarity;
-        let exponentiation = this.params.Noise.exponentiation;
-        let height = this.params.Noise.height;
+    GeHeightFromNCoord(x, y, z) {
+        let scale = this.params.scale;
+        let octaves = this.params.octaves;
+        let persistence = this.params.persistence;
+        let lacunarity = this.params.lacunarity;
+        let exponentiation = this.params.exponentiation;
+        let height = this.params.height;
         let frequency = 1.0;
         let amplitude = 1.0;
         let normalization = 0;
@@ -30,8 +27,9 @@ class SimplexNoiseGenerator {
         const G = 2.0 ** (-persistence);
         const xs = x / scale;
         const ys = y / scale;
+        const zs = z / scale;
         for (let o = 0; o < octaves; o++) {
-            const noiseValue = this.noiseFunc(xs * frequency, ys * frequency) * 0.5 + 0.5;
+            const noiseValue = this.noiseFunc(xs * frequency, ys * frequency, zs * frequency) * 0.5 + 0.5;
             total += noiseValue * amplitude;
             normalization += amplitude;
             amplitude *= G;
@@ -41,5 +39,4 @@ class SimplexNoiseGenerator {
         return Math.pow(total, exponentiation) * height;
     }
 }
-exports.SimplexNoiseGenerator = SimplexNoiseGenerator;
 //# sourceMappingURL=NoiseGenerator.js.map

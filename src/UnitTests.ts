@@ -45,12 +45,12 @@ export class UniTests extends ThreeTsEngine.SceneEntity {
     }
 
     private TestQuadTree() : void { 
-        // Create an initial chunk
-        let chunk = new PlanetTs.TerrainChunk(  PlanetTs.TerrainResolution.RES_50, 
-                                                new THREE.Vector3(250,250,100),
-                                                new THREE.Vector2(500,500));
-        // Create a quad tree
-        let quadTreeNode = new PlanetTs.QuadTreeChunkNode(chunk);
+       // Create an initial chunk
+       // let chunk = new PlanetTs.TerrainChunk(  PlanetTs.TerrainResolution.RES_50, 
+       //                                         new THREE.Vector3(250,250,100),
+       //                                         new THREE.Vector3(500,0,500), null);
+       // Create a quad tree
+       //  let quadTreeNode = new PlanetTs.QuadTreeChunkNode(chunk);
     }
 
 

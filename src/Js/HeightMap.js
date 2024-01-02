@@ -1,31 +1,5 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.HeightMap = void 0;
-const MathHelper = __importStar(require("./MathHelper.js"));
-class HeightMap {
+import * as MathHelper from './MathHelper.js';
+export class HeightMap {
     imageWidth;
     imageHeight;
     engine;
@@ -63,12 +37,11 @@ class HeightMap {
         let height = MathHelper.DoBilinearInterpolation(this.GetPixel(x1, y1), this.GetPixel(x2, y1), this.GetPixel(x1, y2), this.GetPixel(x2, y2), x - x1, y - y1);
         return height;
     }
-    GeHeightFromNCoord(x, y) {
+    GeHeightFromNCoord(x, y, z) {
         let x1 = x * this.imageWidth;
         let y1 = y * this.imageHeight;
         let pixel = this.GetHeight(x1, y1);
         return pixel * 200;
     }
 }
-exports.HeightMap = HeightMap;
 //# sourceMappingURL=HeightMap.js.map
