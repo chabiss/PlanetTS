@@ -45,13 +45,15 @@ export class GraphicEngine {
         KEYPAD_6: 102,
         KEYPAD_7: 103,
         KEYPAD_8: 104,
-        KEYPAD_9: 105, 
+        KEYPAD_9: 105,
+        KEYPAD_PERIOD: 110,
+        KEYPAD_ENTER: 13, 
     };
     
 
     constructor(){
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000000);
         this.renderer =  new THREE.WebGLRenderer({
             canvas: document.querySelector('#target')
         });
@@ -87,9 +89,12 @@ export class GraphicEngine {
 
         // Create the GUI
         this.gui = new GUI();
-        this.gui.addFolder("General")
+        this.gui.addFolder("General");
+        this.gui.addFolder("Traces");
         this.guiParams = {
             General : {
+        },
+            Traces : {
         }
         };
 
@@ -165,6 +170,17 @@ export class GraphicEngine {
             return node.Name == entityName;
         });
         return result;
+    }
+
+    Log(traceKey: string, message : string) {
+        try {
+            if (this.guiParams.Traces[traceKey] == true) {
+                console.log(message);
+            }
+        }
+        catch (error) {
+            console.log("unable to trace key: " + traceKey + " error: " + error);
+        }
     }
     
     GetTexture(texturePath : string, onLoad?: (texture: THREE.Texture) => void) {

@@ -19,13 +19,14 @@ export class PlanetTsEngine extends ThreeTsEngine.GraphicEngine {
     }
 }
 
+// The different resolution mapping we have for the terrain
 export enum TerrainResolution {
-    RES_50 = 10,
-    RES_100 = 20,
-    RES_200 = 40,
-    RES_400 = 80,
-    RES_800 = 160,
-    RES_1600 = 320
+    RES_1,
+    RES_2,
+    RES_3,
+    RES_4,
+    RES_5,
+    RES_6,
 };
 
 const PLANEWIDTH = 500;
@@ -33,9 +34,9 @@ const PLANEHEIGHT = 500;
 const PLANEXRES = 60;
 const planeYRes = 60;
 
-const PLANET_RADIUS = 2000;
+const PLANET_RADIUS = 8000;
 const TERRAIN_CHUNK_DIMENSION = 2000;
-const TERRAIN_MAX_RESOLUTION = TerrainResolution.RES_800;
+const TERRAIN_MAX_RESOLUTION = TerrainResolution.RES_6;
 
 export class TerrainChunk {
     private plane : THREE.Mesh;
@@ -46,67 +47,110 @@ export class TerrainChunk {
     private dimensions : THREE.Vector3;     // Dimension of the chunk
     private bounds : THREE.Box3;            // Bounds of the chunk
     private localToWorld : THREE.Matrix4;   // Local to world matrix
+    private needRebuild : boolean;          // Flag to indicate if the chunk needs to be rebuild
+    private committed : boolean;            // Flag to indicate if the chunk is committed to the scene
+    private terrainChunkManager : TerrainChunkManager; // Reference to the terrain chunk manager managing the chunks
 
-    // Generate an enum of 6 resolutions
+    public get Plane() : THREE.Mesh {return this.plane; };
+    public get Resolution() : TerrainResolution {return this.resolution; };
+    public get CenterWorld() : THREE.Vector3 {return this.centerWorld; };
+    public get Dimensions() : THREE.Vector3 {return this.dimensions; };
+    public get Diagonal() : number {return this.bounds.getSize(new THREE.Vector3()).length(); };
+    public get LocalToWorld() : THREE.Matrix4 {return this.localToWorld; };
+    public get Bounds() : THREE.Box3 {return this.bounds; };
+    public get IsCommitted() : boolean {return this.committed; };
+    public get NeedRebuild() : boolean {return this.needRebuild; };
+    public set NeedRebuild(value : boolean) {this.needRebuild = value; };
+    public get Manager() : TerrainChunkManager {return this.terrainChunkManager; };
+
     
-    
-    constructor(resolution : TerrainResolution, bounds : THREE.Box3) {
+    constructor(terrainChunkManager : TerrainChunkManager , resolution : TerrainResolution, bounds : THREE.Box3, locaToWorld : THREE.Matrix4 = null) {
+        this.terrainChunkManager = terrainChunkManager;
+        this.Init(resolution, bounds, locaToWorld);
+    }
+
+    public Init(resolution : TerrainResolution, bounds : THREE.Box3, locaToWorld : THREE.Matrix4 = null) : void {
         this.resolution = resolution;
         this.bounds = bounds;
         this.centerLocal = bounds.getCenter(new THREE.Vector3());
-        this.dimensions = bounds.getSize(new THREE.Vector3());       
+        this.dimensions = bounds.getSize(new THREE.Vector3());
+        this.needRebuild = true;
+        this.committed = false;
+        this.localToWorld = locaToWorld;
     }
 
     public EnsureCenterWorld(localToWorld: THREE.Matrix4, radius : number) : void {
         this.centerWorld = this.centerLocal.clone();
-        this.centerWorld.applyMatrix4(localToWorld);
+        this.localToWorld = localToWorld.clone();
+        this.centerWorld.applyMatrix4(this.localToWorld);
         this.centerWorld.normalize()
         this.centerWorld.multiplyScalar(radius);
     }
 
 
-    public EnsurePlane(manager : TerrainChunkManager,  localToWorld : THREE.Matrix4) : IterableIterator<void> {
-       
-        let planeMaterial = new THREE.MeshStandardMaterial({side: THREE.FrontSide, wireframe: manager.Engine.GuiParams.General.Wireframe, vertexColors: true,});
-        if (this.plane == null){
-            this.CreatePlane(planeMaterial);
-            let gen = this.Rebuild(manager, localToWorld);
-            return gen;
+    public Commit(manager : TerrainChunkManager,  group : THREE.Group = null) : void {
+        this.EnsurePlane(manager);
+        this.committed = true;
+
+        if (group != null){
+            group.add(this.plane);
+        }
+    }
+
+    public Uncommit(group : THREE.Group = null) : void {
+        this.committed = false;
+        this.Hide();
+
+        if (group != null){
+            group.remove(this.plane);
+        }
+    }
+
+    public Show() : void {
+        this.plane.visible = true;
+    }
+
+    public Hide () : void {
+        this.plane.visible = false;
+    }
+
+    public EnsureBuilt() : IterableIterator<void> {
+
+        if(!this.needRebuild) {
+            return null
         }
 
-        return null;
+        return this.Rebuild(false);
     }
 
-    public RemovePlane() : THREE.Mesh {
-        let plane = this.plane;
-        this.plane = null;
-        return plane;
-    }
-
-    Rebuild(manager : TerrainChunkManager, localToWorld : THREE.Matrix4, buildMeshSynchronously : boolean = true) : IterableIterator<void> {
-
-        let iterator = this.BuildGeometry(manager, localToWorld);
+    public Rebuild(buildMeshSynchronously : boolean = false ) : IterableIterator<void> {
+        this.needRebuild = true;  
+        let iterator = this.BuildGeometry();
         if (buildMeshSynchronously){
             while(true){
                 let result = iterator.next();
                 if (result.done) {
-                    break;
+                    return null;
                 }
             }
         }
         return iterator;
     }
 
-    private CreatePlane(material : THREE.Material) : void {
-        this.geometry = new THREE.BufferGeometry();
-        let plane = new THREE.Mesh(this.geometry, material);
-        plane.castShadow = false;
-        plane.receiveShadow = true;
-        this.plane = plane;
+    private EnsurePlane(manager : TerrainChunkManager) : void {
+        if(this.plane == null) {
+            this.geometry = new THREE.BufferGeometry();
+            let plane = new THREE.Mesh(this.geometry, manager.TerrainMaterial);
+            plane.castShadow = false;
+            plane.receiveShadow = true;
+            plane.frustumCulled = false;
+            this.plane = plane;
+            this.needRebuild = true;    
+        }
     }
 
-    private *BuildGeometry(manager : TerrainChunkManager,  localToWorld : THREE.Matrix4) : IterableIterator<void> {
-        const _D = new THREE.Vector3();
+    private *BuildGeometry() : IterableIterator<void> {
+      const _D = new THREE.Vector3();
       const _D1 = new THREE.Vector3();
       const _D2 = new THREE.Vector3();
       const _P = new THREE.Vector3();
@@ -127,7 +171,7 @@ export class TerrainChunk {
       const uvs = [];
       const indices = [];
 
-      const resolution = this.resolution;
+      const resolution = this.Manager.GetResolution(this.resolution);
       const radius = PLANET_RADIUS;
       const offset = this.centerLocal
       const width = this.Dimensions.x;
@@ -148,16 +192,16 @@ export class TerrainChunk {
 
           // Compute a world space position to sample noise
           _W.copy(_P);
-          _W.applyMatrix4(localToWorld);
+          _W.applyMatrix4(this.localToWorld);
 
-          const height = manager.HeightGenerator.GeHeightFromNCoord(_W.x, _W.y, _W.z);
+          const height = this.terrainChunkManager.HeightGenerator.GeHeightFromNCoord(_W.x, _W.y, _W.z);
           // const color = this._params.colourGenerator.Get(_W.x, _W.y, height);
           let  color = null;
-          if(manager.Engine.GuiParams.General.QuadTreeDebug){
+          if(this.terrainChunkManager.Engine.GuiParams.General.QuadTreeDebug){
             color = new THREE.Color();
             color.setHex(this.ResolutionToColor(this.resolution));
           }else {
-            color = manager.HyposemetricTints.Get(_W.x, _W.y, height);
+            color = this.terrainChunkManager.HyposemetricTints.Get(_W.x, _W.y, height);
           }
 
           // Purturb height along z-vector
@@ -236,6 +280,8 @@ export class TerrainChunk {
           'uv', new THREE.Float32BufferAttribute(uvs, 2));
       this.geometry.setIndex(
           new THREE.BufferAttribute(new Uint32Array(indices), 1));
+
+      this.needRebuild = false;
     }
 
     private ApplyHeightMapToPlane(plane : THREE.Mesh, heightGenerator : ThreeTsEngine.IHeightGenerator, centerWorld : THREE.Vector3,  worldDimension: number) : void {
@@ -270,28 +316,19 @@ export class TerrainChunk {
         plane.geometry.computeVertexNormals();
     }
 
-    
-    public get Plane() : THREE.Mesh {return this.plane; };
-    public get Resolution() : number {return this.resolution; };
-    public get CenterWorld() : THREE.Vector3 {return this.centerWorld; };
-    public get Dimensions() : THREE.Vector3 {return this.dimensions; };
-    public get Diagonal() : number {return this.bounds.getSize(new THREE.Vector3()).length(); };
-    public get LocalToWorld() : THREE.Matrix4 {return this.localToWorld; };
-    public get Bounds() : THREE.Box3 {return this.bounds; };
-
     private ResolutionToColor(resolution : TerrainResolution) : number {
         switch(resolution) {
-            case TerrainResolution.RES_50:
+            case TerrainResolution.RES_1:
                 return 0xFFFFFF;
-            case TerrainResolution.RES_100:
+            case TerrainResolution.RES_2:
                 return 0x00FF00;
-            case TerrainResolution.RES_200:
+            case TerrainResolution.RES_3:
                 return 0x0000FF;
-            case TerrainResolution.RES_400:
+            case TerrainResolution.RES_4:
                 return 0x00FFFF;
-            case TerrainResolution.RES_800:
+            case TerrainResolution.RES_5:
                 return 0xFFFF00;
-            case TerrainResolution.RES_1600:
+            case TerrainResolution.RES_6:
                 return 0xFF00FF;
             default:
                 return 0xFF0000;
@@ -300,8 +337,9 @@ export class TerrainChunk {
 }
 
 export enum TraverseContextMode {
-    ADD,
-    REMOVE   
+    ADD,                // In this mode, we're adding chunks to the scene if the meet the criteria for insertion
+    REMOVE,             // In this mode, we're removing chunks from the scene if they meet the criteria for removal
+    SKIP                // In this mode, nodes are skip and traversal is not longer recursive for a given node
 }
 
 export class TraverseContext {
@@ -321,19 +359,26 @@ export class TraverseContext {
     
     public AddChunkNode(chunkNode : QuadTreeChunkNode) : void {
         
-        if(chunkNode.Chunk.Plane != null && !this.forceRebuild) {
+        if(chunkNode.Chunk.IsCommitted && !this.forceRebuild) {
             return;
         }
 
         this.addedChunks.push(chunkNode);
     }
 
-    public RemoveChunkNode(chunkNode : QuadTreeChunkNode) : void {
+    public RemoveChunkNode(chunkNode : QuadTreeChunkNode, markChunkForGarbageCollection : boolean) : void {
+
+        if(chunkNode.Chunk == null){
+            return;
+        }
         
-        if(chunkNode.Chunk.Plane == null) {   
+        // if this chunk is not committed, not need to remove it again
+        if(!chunkNode.Chunk.IsCommitted) {   
             return;
         }
 
+        chunkNode.MarkChunkForGarbageCollection = markChunkForGarbageCollection;
+   
         this.removedChunks.push(chunkNode);
     }
 
@@ -350,6 +395,9 @@ export class QuadTreeChunkNode {
     private children : QuadTreeChunkNode[];
     private group : THREE.Group;
     private radius : number;
+    private markChunkForGarbageCollection : boolean = false;
+    private leafNode : boolean = false;
+    private selfOrDescendandVisible : boolean = false;
 
     constructor(chunk : TerrainChunk, radius : number, group : THREE.Group = null) {
         this.chunk = chunk;
@@ -362,49 +410,104 @@ export class QuadTreeChunkNode {
     public get Chunk() : TerrainChunk {return this.chunk; };
     public get Children() : QuadTreeChunkNode[] {return this.children; }; 
     public get Group() : THREE.Group {return this.group; };
+    public get MarkChunkForGarbageCollection() : boolean {return this.markChunkForGarbageCollection; };
+    public set MarkChunkForGarbageCollection(value : boolean) {this.markChunkForGarbageCollection = value; };
+    public get LeafNode() : boolean {return this.leafNode; };
 
     // Generate the children of the node
-    public EnsureChildren() : void {  
-        
-        // If children are already generated, return
-        if(this.children != null) {
-            return;
+    public EnsureChildrenVisible() : boolean {  
+       
+        // If the were no children, create them, but they are not ready to be visible
+        if(!this.EnsureChildrenNode()){
+            return false;
         }
 
-        // Compute the dimension of the children
-        let childDimension = new THREE.Vector3(this.chunk.Dimensions.x / 2, this.chunk.Dimensions.y / 2, this.chunk.Dimensions.z / 2);
-        // Create the children
-        this.children = [];
+        // If the children are built, ensure they are visible   
+        if(!this.AllChildrenBuilt()){
+            return false;
+        }
+   
+        return true;
+    }
 
-        // Compute the center of the children 
-        const midPoint = this.chunk.Bounds.getCenter(new THREE.Vector3());
-        
-        // Bottom Left
-        const bottomLeft = new THREE.Box3(this.chunk.Bounds.min, midPoint);
-        // Bottom Right
-       const bottomRight = new THREE.Box3( new THREE.Vector3(midPoint.x, this.chunk.Bounds.min.y, 0),
-                                  new THREE.Vector3(this.chunk.Bounds.max.x, midPoint.y, 0));
-        // Top Right 
-        const topRight = new THREE.Box3(midPoint, this.chunk.Bounds.max);
-        // Top Left
-        const topLeft = new THREE.Box3(new THREE.Vector3(this.chunk.Bounds.min.x, midPoint.y, 0),
-                                  new THREE.Vector3(midPoint.x, this.chunk.Bounds.max.y, 0));
+    private EnsureVisible() : boolean {
 
-        // Bottom left
-        this.children.push(new QuadTreeChunkNode(new TerrainChunk(this.chunk.Resolution * 2, bottomLeft), this.radius, this.Group));
+        if(this.chunk == null) {
+            return false;
+        }
 
-        // Bottom right
-        this.children.push(new QuadTreeChunkNode(new TerrainChunk(this.chunk.Resolution * 2, bottomRight), this.radius, this.Group));
+        if(this.chunk.IsCommitted && !this.chunk.NeedRebuild){
+            this.chunk.Show();
+            return true;
+        }
 
-        // Top Right
-        this.children.push(new QuadTreeChunkNode(new TerrainChunk(this.chunk.Resolution * 2, topRight), this.radius, this.Group));
-        
-        // Top left
-        this.children.push(new QuadTreeChunkNode(new TerrainChunk(this.chunk.Resolution * 2, topLeft), this.radius, this.Group));   
+        return false
+    }
+
+    private EnsureChildrenNode() : boolean {
+    // If children are already generated, return
+        if(this.children == null) {
+                // Compute the dimension of the children
+            let childDimension = new THREE.Vector3(this.chunk.Dimensions.x / 2, this.chunk.Dimensions.y / 2, this.chunk.Dimensions.z / 2);
+            // Create the children
+            this.children = [];
+
+            // Compute the center of the children 
+            const midPoint = this.chunk.Bounds.getCenter(new THREE.Vector3());
+            
+            // Bottom Left
+            const bottomLeft = new THREE.Box3(this.chunk.Bounds.min, midPoint);
+            // Bottom Right
+            const bottomRight = new THREE.Box3( new THREE.Vector3(midPoint.x, this.chunk.Bounds.min.y, 0),
+                                    new THREE.Vector3(this.chunk.Bounds.max.x, midPoint.y, 0));
+            // Top Right 
+            const topRight = new THREE.Box3(midPoint, this.chunk.Bounds.max);
+            // Top Left
+            const topLeft = new THREE.Box3(new THREE.Vector3(this.chunk.Bounds.min.x, midPoint.y, 0),
+                                    new THREE.Vector3(midPoint.x, this.chunk.Bounds.max.y, 0));
+
+            let newResolution : TerrainResolution = this.chunk.Resolution+1;
+
+            // Bottom left
+            this.children.push(new QuadTreeChunkNode(this.chunk.Manager.AssignChunk(newResolution, bottomLeft, this.chunk.LocalToWorld), this.radius, this.Group));
+
+            // Bottom right
+            this.children.push(new QuadTreeChunkNode(this.chunk.Manager.AssignChunk(newResolution, bottomRight, this.chunk.LocalToWorld), this.radius, this.Group));
+
+            // Top Right
+            this.children.push(new QuadTreeChunkNode(this.chunk.Manager.AssignChunk(newResolution, topRight, this.chunk.LocalToWorld), this.radius, this.Group));
+            
+            // Top left
+            this.children.push(new QuadTreeChunkNode(this.chunk.Manager.AssignChunk(newResolution, topLeft, this.chunk.LocalToWorld), this.radius, this.Group));              
+            return false;
+        }
+        return true;
+    }
+
+    private AllChildrenBuilt() : boolean {
+        if(this.children == null) {
+            return false;
+        }
+
+        for (let i = 0; i < this.children.length; i++) {
+            let chunk = this.children[i].Chunk;
+
+            if(chunk == null) {
+                throw new Error("AllChildrenBuilt error: Chunk is null");
+            }
+
+            if(!chunk.IsCommitted || chunk.NeedRebuild){
+                return false;
+            }
+        }
+
+        return true;
     }
 
     DistanceTo (position : THREE.Vector3) : number {
-
+        if(this.chunk == null) {
+            throw new Error("DistanceTo error: Chunk is null");
+        }
         return this.chunk.CenterWorld.distanceTo(position);
     }
 
@@ -418,25 +521,45 @@ export class QuadTreeChunkNode {
 
             // If the distance is greater than the diagonal of the chunk, or if we're in remove mode, we can remove the chunk
             if (distance > this.chunk.Dimensions.x * 1.25 || this.chunk.Resolution == TERRAIN_MAX_RESOLUTION) {
-                modeForChildren = TraverseContextMode.REMOVE;
+                // The node doesn't need to be subdivided, add a chunk to it
                 context.AddChunkNode(this);
+                this.leafNode = true;
+                // if the node is ready to be shown, we can remove the children
+                if(this.EnsureVisible()) {
+                    modeForChildren = TraverseContextMode.REMOVE;
+                }
+                else {
+                    // Skip the children until the parent node is ready to be visible
+                    modeForChildren = TraverseContextMode.SKIP;
+                }                
             }
             else {
-                // If we're inside the diagonal, ensure the children and traverse them
-                this.EnsureChildren();
-                // Outer plan will not be visible as we will recures into the children     
-                context.RemoveChunkNode(this);
+                this.EnsureChildrenNode();
+                this.leafNode = false;
             }
         }else {
             // If we're in remove mode, we can remove the chunk
-            context.RemoveChunkNode(this);
+            context.RemoveChunkNode(this, true);
         }
         
-        if (this.children != null) {
-            for (let i = 0; i < this.children.length; i++) {
-                context.Mode = modeForChildren;
-                this.children[i].Traverse(context);
-            }
+        let descendantVisible = true;
+        if(modeForChildren != TraverseContextMode.SKIP){
+            if (this.children != null) {
+                for (let i = 0; i < this.children.length; i++) {
+                    context.Mode = modeForChildren;
+                    this.children[i].Traverse(context);
+                    if(descendantVisible && !this.children[i].selfOrDescendandVisible){
+                        descendantVisible = false;
+                    }
+                }
+            }    
+        }
+
+        this.selfOrDescendandVisible = this.leafNode? this.EnsureVisible() : descendantVisible;
+
+        // If this is not a leaf node and all the children are visible, we can remove the chunk
+        if(!this.leafNode && this.selfOrDescendandVisible){
+            context.RemoveChunkNode(this, false);
         }
 
         if (modeForChildren == TraverseContextMode.REMOVE) {
@@ -445,30 +568,39 @@ export class QuadTreeChunkNode {
         }
     }
 
-    CommitPlaneToScene(terrainChunkManager: TerrainChunkManager,  forceRebuild : boolean = false) : IterableIterator<void>
-    {
+    CommitToScene(terrainChunkManager: TerrainChunkManager,  forceRebuild : boolean = false) : IterableIterator<void> {
         let gen = null;
-        if(this.chunk.Plane == null){
-            gen = this.chunk.EnsurePlane(terrainChunkManager, this.Group.matrix);
-            if (this.chunk.Plane != null) {
-                console.log("Adding plane to scene Chunk min(" + this.chunk.Bounds.min.x + "," + this.chunk.Bounds.min.y + ") max(" + this.chunk.Bounds.max.x + ", " + this.chunk.Bounds.max.y + ") Res: " + this.chunk.Resolution + "");
-                this.group.add(this.chunk.Plane);
-            }    
+
+        if(this.Chunk == null){
+            throw new Error("CommitToScene error: Chunk is null");
         }
 
-        if(forceRebuild){
-            gen = this.chunk.Rebuild(terrainChunkManager, this.Group.matrix);
+        // If the plane is not committed to the scene, commit it
+        if(!this.chunk.IsCommitted){
+            this.markChunkForGarbageCollection = false;
+            this.chunk.Commit(terrainChunkManager, this.Group);
+            this.chunk.Manager.Engine.Log("CommitToScene", "Adding plane to scene Chunk min(" + this.chunk.Bounds.min.x + "," + this.chunk.Bounds.min.y + ") max(" + this.chunk.Bounds.max.x + ", " + this.chunk.Bounds.max.y + ") Res: " + this.chunk.Resolution + "");
+        }
+        else {
+            // If the plane is already committed, ensure it's visible
+            this.EnsureVisible();
+        }
+
+
+        if(this.chunk.NeedRebuild || forceRebuild){
+            terrainChunkManager.ScheduleChunkRebuild(this.chunk);
         }
 
         return gen;
     }
 
-    UnCommitPlaneFromScene() : void
+    UnCommitFromScene() : void
     {
-        if(this.chunk.Plane != null){
-            let plane = this.Chunk.RemovePlane();
-            console.log("Removing plane to scene Chunk min(" + this.chunk.Bounds.min.x + "," + this.chunk.Bounds.min.y + ") max(" + this.chunk.Bounds.max.x + ", " + this.chunk.Bounds.max.y + ") Res: " + this.chunk.Resolution + "");
-            this.group.remove(plane);
+        this.chunk.Uncommit(this.group)
+        this.chunk.Manager.Engine.Log("CommitToScene", "Removing plane to scene Chunk min(" + this.chunk.Bounds.min.x + "," + this.chunk.Bounds.min.y + ") max(" + this.chunk.Bounds.max.x + ", " + this.chunk.Bounds.max.y + ") Res: " + this.chunk.Resolution + "");
+        if (this.markChunkForGarbageCollection){
+            this.chunk.Manager.GarbageCollectChunk(this.chunk);
+            this.chunk = null;
         }
     }
 }
@@ -480,6 +612,22 @@ class TerrainChunkManager {
     private heightGenerator : ThreeTsEngine.IHeightGenerator;
     private hyposemetricTints : HyposemetricTints;
     private engine : PlanetTsEngine;
+    private terrainMaterial : THREE.MeshStandardMaterial;
+    // create a queue of IterableIterator<void> to generate the mesh
+    private chunkRebuildQueue : TerrainChunk[];
+    private garbadgeCollectQueue : TerrainChunk[];
+    private activeGen : IterableIterator<void>;
+    private needUpdate : boolean;
+    private saveGarbadgeCollectorSize : number = 0;
+    // Resolution for each relolution settings
+    private terrainResolution : number[] = [
+        400, 
+        200, 
+        200, 
+        100, 
+        100, 
+        100,
+        ];
 
     // Create the 6 QuadTreeChunk and Nodes for each of the faces
     private quadTreeChunkNodes : QuadTreeChunkNode[];
@@ -489,8 +637,11 @@ class TerrainChunkManager {
         this.cachedPosition = new THREE.Vector3(0,0,0);     
         this.radius = radius;
         this.quadTreeChunkNodes = [];
-        // Create the 6 QuadTreeChunk and Nodes for each of the faces
+        this.chunkRebuildQueue = [];
+        this.garbadgeCollectQueue = [];
+        this.activeGen = null;        
 
+        // Create the 6 QuadTreeChunk and Nodes for each of the faces
         const transforms : THREE.Matrix4[] = []; 
         // 
         // +Y
@@ -532,7 +683,7 @@ class TerrainChunkManager {
             const group = new THREE.Group();
             group.matrix = m;
             group.matrixAutoUpdate = false;
-            let chunkNode = new QuadTreeChunkNode(new TerrainChunk( TerrainResolution.RES_50, 
+            let chunkNode = new QuadTreeChunkNode(this.AssignChunk( TerrainResolution.RES_1, 
                                                                     new THREE.Box3(new THREE.Vector3(-radius,-radius,0),new THREE.Vector3(radius,radius,0))), this.radius,  group);                                                           
             this.quadTreeChunkNodes.push(chunkNode);
         });
@@ -544,6 +695,33 @@ class TerrainChunkManager {
     get HyposemetricTints() : HyposemetricTints {return this.hyposemetricTints; };
     get CachedPosition() : THREE.Vector3 {return this.cachedPosition; };
     get Engine() : PlanetTsEngine {return this.engine; };
+    get TerrainMaterial() : THREE.MeshStandardMaterial {return this.terrainMaterial; };
+    
+    GetResolution(resolution : TerrainResolution) : number {
+        return this.terrainResolution[resolution];
+    }   
+
+    public UpdateMeshMaterial(wireframe: boolean) {
+        this.terrainMaterial.wireframe = wireframe;
+    }
+
+    public AssignChunk(resolution : TerrainResolution, bounds : THREE.Box3, locaToWorld : THREE.Matrix4 = null) : TerrainChunk {
+        // See first if we can get a chunk from the garbage collect queue
+        if (this.garbadgeCollectQueue.length > 0) {
+            let chunk = this.garbadgeCollectQueue.shift();
+            chunk.Init(resolution, bounds, locaToWorld);
+            return chunk;
+        }
+
+        let chunk = new TerrainChunk(this, resolution, bounds, locaToWorld);
+        return chunk;
+    }
+
+    public GarbageCollectChunk(chunk : TerrainChunk) : void {
+        chunk.Uncommit();
+        chunk.NeedRebuild = true;
+        this.garbadgeCollectQueue.push(chunk);
+    }
 
     public Attach(engine : PlanetTsEngine) : void {
         // Add the chunk to the scene
@@ -554,6 +732,7 @@ class TerrainChunkManager {
         this.heightGenerator = new SimplexNoiseGenerator(engine.GuiParams.Noise);
         this.hyposemetricTints = new HyposemetricTints(new SimplexNoiseGenerator(engine.GuiParams.TerrainTintNoise));
         this.engine = engine;
+        this.terrainMaterial = new THREE.MeshStandardMaterial({side: THREE.FrontSide, wireframe: this.Engine.GuiParams.General.Wireframe, vertexColors: true,});
     }
 
     public Detach(engine : PlanetTsEngine) : void {
@@ -565,17 +744,63 @@ class TerrainChunkManager {
 
     public Rebuild() : void {
 
-    } 
+    }
+    
+    public ScheduleChunkRebuild(chunk : TerrainChunk) : void {
+        chunk.Hide();
+        this.chunkRebuildQueue.push(chunk);
+    }
 
+    public ProcessChunkRebuildQueue() : boolean {
+
+        if(this.activeGen != null) {
+            let result = this.activeGen.next();
+            if (result.done) {
+                this.activeGen = null;
+            }else{
+                return true
+            }
+        }
+
+        if (this.chunkRebuildQueue.length > 0) {
+            let chunk = this.chunkRebuildQueue.shift();
+            this.activeGen = chunk.Rebuild(false);
+            return true;   
+        } 
+
+        return false;
+    }
 
     public Update(worldPosition : THREE.Vector3, forceRebuild: boolean = false) : void {
         
-        if (this.cachedPosition.equals(worldPosition) && !forceRebuild) {
-            return;
+        // Process the mesh generation queue
+        let moreToRebuild = this.ProcessChunkRebuildQueue();
+
+        if(forceRebuild) {
+            this.needUpdate = true;
         }
 
-        this.cachedPosition = worldPosition.clone();
-        // This method will walk the quadtree and generate the chunks that are needed
+        //if (!this.cachedPosition.equals(worldPosition)) {
+        //     this.cachedPosition = worldPosition.clone();
+        //    this.needUpdate = true;
+       // }
+        this.needUpdate = true;
+
+        if(!moreToRebuild && this.needUpdate){
+            // Update the quadtree of each side of the cube sphere
+            this.UpdateQuadTrees(worldPosition, forceRebuild);
+        }
+
+        if(this.engine.GuiParams.Traces.ChunkManager){
+            if(this.saveGarbadgeCollectorSize != this.garbadgeCollectQueue.length){
+                this.engine.Log("ChunkManager", "Garbadge Collector Size: " + this.garbadgeCollectQueue.length);
+            }
+            this.saveGarbadgeCollectorSize = this.garbadgeCollectQueue.length;
+        }
+    }
+
+    private UpdateQuadTrees(worldPosition: THREE.Vector3, forceRebuild: boolean) : void {
+         // This method will walk the quadtree and generate the chunks that are needed
         // Algorigthm goes like this:
         // 1. Start at the root, walk the children of the quadtree and calculate the distance from worldPosition to each of the children center point
         // 2. For each children visited, ensure their terain chunk is the list of visited chunks
@@ -591,14 +816,16 @@ class TerrainChunkManager {
 
             // For each chunk in the context, ensure the plane is generated and add it to the scene
             context.AddedChunkNodes.forEach(chunkNode => {
-                chunkNode.CommitPlaneToScene(this, forceRebuild);
+                chunkNode.CommitToScene(this, forceRebuild);
             });
 
             // For each removed chunk, remove it from the scene and remove the plane
             context.RemovedChunkNodes.forEach(chunkNode => {
-                chunkNode.UnCommitPlaneFromScene();
+                chunkNode.UnCommitFromScene();
             });
         });
+
+        this.needUpdate = false;
     }
 }
     
@@ -620,10 +847,10 @@ class TerrainSceneEntity extends ThreeTsEngine.SceneEntity {
         //    this.Rebuild();});
 
         this.Engine.GuiParams.General = {"Wireframe": false, "QuadTreeDebug": false};
-
         // wireframe
         this.Engine.Gui.__folders["General"].add(this.Engine.GuiParams.General, 'Wireframe').onChange((value : boolean) => {
             this.Engine.EnableFrameMode(value);
+            this.terrainChunkManager.UpdateMeshMaterial(value);
         });
 
         // Quadtree Debugging
@@ -631,13 +858,19 @@ class TerrainSceneEntity extends ThreeTsEngine.SceneEntity {
             this.Rebuild();
         });
 
+        this.Engine.GuiParams.Traces = {"CommitToScene": false, "ChunkManager": false};
+        this.Engine.Gui.__folders["Traces"].add(this.Engine.GuiParams.Traces, 'CommitToScene');
+        this.Engine.Gui.__folders["Traces"].add(this.Engine.GuiParams.Traces, 'ChunkManager');
+
         // Noise parameters
-        this.Engine.GuiParams.Noise = { "scale": 215.0, 
-                                        "octaves": 7, 
-                                        "persistence": 0.91, 
-                                        "lacunarity": 1.9, 
-                                        "exponentiation": 4.2, 
-                                        "height": 70.7 };
+        this.Engine.GuiParams.Noise = { 
+            "scale": 1100.0, 
+            "octaves": 13, 
+            "persistence": 0.707, 
+            "lacunarity": 1.8, 
+            "exponentiation": 4.5, 
+            "height": 300,
+            "seed": 1};
 
         this.Engine.Gui.addFolder("Noise");                               
         this.Engine.Gui.__folders["Noise"].add(this.Engine.GuiParams.Noise, 'scale', 64.0, 4096.0).onChange((value : number) => {
@@ -665,12 +898,14 @@ class TerrainSceneEntity extends ThreeTsEngine.SceneEntity {
         });
         
         // Noise parameters
-        this.Engine.GuiParams.TerrainTintNoise = { "scale": 64.0, 
-                                        "octaves": 7, 
-                                        "persistence": 0.91, 
-                                        "lacunarity": 0.8, 
-                                        "exponentiation": 6.6, 
-                                        "height": 82 };
+        this.Engine.GuiParams.TerrainTintNoise = { 
+                                        "scale": 2048.0, 
+                                        "octaves": 2, 
+                                        "persistence": 0.5, 
+                                        "lacunarity": 2.0, 
+                                        "exponentiation": 3.9, 
+                                        "height": 1,
+                                        "seed": 2};
 
         this.Engine.Gui.addFolder("TerrainTintNoise");                               
         this.Engine.Gui.__folders["TerrainTintNoise"].add(this.Engine.GuiParams.TerrainTintNoise, 'scale', 64.0, 4096.0).onChange((value : number) => {
@@ -704,7 +939,7 @@ class TerrainSceneEntity extends ThreeTsEngine.SceneEntity {
             }),
             "simplex" : new SimplexNoiseGenerator(this.Engine.GuiParams.Noise)};
 
-        this.Engine.Camera.position.set(0, 0, 3000);
+        this.Engine.Camera.position.set(0, 0, PLANET_RADIUS + 1000);
         this.Engine.Camera.lookAt(0, 0, 0);
 
         // Attach the terrainChunkManager
@@ -724,8 +959,8 @@ class TerrainSceneEntity extends ThreeTsEngine.SceneEntity {
     Update(): void {
 
         let node = this.Engine.GetSceneEntity("basicNode") as BasicScenenode;
-        this.cameraPosition =  node.Position();
-        // this.cameraPosition = this.Engine.CameraPosition();
+        // this.cameraPosition =  node.Position();
+        this.cameraPosition = this.Engine.CameraPosition();
         
         this.terrainChunkManager.Update(this.cameraPosition);
     }
@@ -739,7 +974,7 @@ class LightSceneEntity extends ThreeTsEngine.SceneEntity {
     constructor(){
         super("Light");
         this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        this.directionalLight.position.set(1000, 1000, 0);
+        this.directionalLight.position.set(10000, 10000, 0);
 
         this.ambientLight = new THREE.AmbientLight(0x404040);
     }
@@ -763,6 +998,8 @@ class BasicScenenode extends ThreeTsEngine.SceneEntity {
     private rotateAngle : number = 0;
     private increment : number = 0.0001;
     private keyLatchState: { [key: number]: boolean } = {};
+    private followMode : boolean = false;
+    private rotationMode : boolean = true;
     
     constructor(){
         super("basicNode");
@@ -774,6 +1011,7 @@ class BasicScenenode extends ThreeTsEngine.SceneEntity {
 
     Attach(): void {
         this.Engine.AddObject3DToScene(this.mesh);
+        this.Engine.Camera.rotateX(-Math.PI / 2);
     }
 
     Detach(): void {
@@ -782,74 +1020,121 @@ class BasicScenenode extends ThreeTsEngine.SceneEntity {
 
     Update(): void {
         this.rotateAngle += this.increment;
-        let position = new THREE.Vector3(0, 0, PLANET_RADIUS+100);
+        let position = new THREE.Vector3(0, 0, PLANET_RADIUS+300);
+        let positionLookAt = new THREE.Vector3(PLANET_RADIUS, 0, 0);
         let matrix = new THREE.Matrix4();
         matrix.makeRotationY(this.rotateAngle);
-        position.applyMatrix4(matrix);
-        this.mesh.position.set(position.x, position.y, position.z);
+        position.applyMatrix4(matrix);   
         
+        if(this.rotationMode){
+            this.mesh.position.set(position.x, position.y, position.z);
+        }
+
+        if(this.followMode){
+            this.Engine.Camera.position.set(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
+
+            if(this.rotationMode){
+                let matrix2 = matrix.clone(); 
+                positionLookAt.applyMatrix4(matrix);
+                this.Engine.Camera.lookAt(positionLookAt.x, positionLookAt.y, positionLookAt.z);
+                this.Engine.Camera.rotateZ(-Math.PI / 2);    
+            }
+        }
+         
         // if the left key arrow is pressed, move the mesh position to 10 left
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_4)) {
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_4)) {
             this.mesh.position.x -= 1;
         }
 
         // if the right key arrow is pressed, move the mesh position to 10 right
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_6)) {
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_6)) {
             this.mesh.position.x += 1;
         }
 
         // if the up key arrow is pressed, move the mesh position to 10 in z direction
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_8)) {
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_8)) {
             this.mesh.position.z -= 1;
         }
 
         // if the down key arrow is pressed, move the mesh position to -10 in z direction
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_2)) {
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_2)) {
             this.mesh.position.z += 1;
         }
 
         // if thepage up key  is pressed, move the mesh position to 10 in y direction
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys. KEYPAD_PLUS)) {
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys. KEYPAD_PLUS)) {
             this.mesh.position.y += 1;
         }
 
         // if the page down key is pressed, move the mesh position to -10 in y direction
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_MINUS)) {
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_MINUS)) {
             this.mesh.position.y -= 1;
         }
 
         // if the page down key is pressed, move the mesh position to -10 in y direction
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_DIVIDE)) {
-            if(this.keyLatchState[ThreeTsEngine.GraphicEngine.Keys.KEYPAD_DIVIDE] == false) {
-                this.keyLatchState[ThreeTsEngine.GraphicEngine.Keys.KEYPAD_DIVIDE] = true;
+        if (this.IsKeyLatched(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_MULTIPLY)) {
                 this.increment += 0.0001;
-            }
-        }
-        else {
-            this.keyLatchState[ThreeTsEngine.GraphicEngine.Keys.KEYPAD_DIVIDE] = false;
         }
 
         // if the page down key is pressed, move the mesh position to -10 in y direction
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_MULTIPLY)) {
-            if(this.keyLatchState[ThreeTsEngine.GraphicEngine.Keys.KEYPAD_MULTIPLY] == false) {
-                this.keyLatchState[ThreeTsEngine.GraphicEngine.Keys.KEYPAD_MULTIPLY] = true;
+        if (this.IsKeyLatched(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_DIVIDE)) {
                 this.increment -= 0.0001;
-            }
-        }else {
-            this.keyLatchState[ThreeTsEngine.GraphicEngine.Keys.KEYPAD_MULTIPLY] = false;
         }
 
         // if the page down key is pressed, move the mesh position to -10 in y direction
-        if (this.Engine.IskeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_9)) {
+        if (this.IsKeyLatched(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_0)) {
             this.increment = 0;
         }
 
-        // this.mesh.rotation.x += 0.01;
-        // this.mesh.rotation.y += 0.005;
+        // if the page down key is pressed, move the mesh position to -10 in y direction
+        if (this.IsKeyLatched(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_PERIOD)) {
+            this.followMode = !this.followMode;
+        }
+
+        // if the page down key is pressed, move the mesh position to -10 in y direction
+        if (this.IsKeyLatched(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_ENTER)) {
+            this.rotationMode = !this.rotationMode;
+        } 
+
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_7)) {
+            this.Engine.Camera.rotateX(0.01);
+        }
+
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_9)) {
+            this.Engine.Camera.rotateX(-0.01);
+        }
+
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_1)) {
+            this.Engine.Camera.rotateY(0.01);
+        }
+
+        if (this.IsKeyPressed(ThreeTsEngine.GraphicEngine.Keys.KEYPAD_3)) {
+            this.Engine.Camera.rotateY(-0.01);
+        }
     }
 
     Position() : THREE.Vector3 {
         return this.mesh.position;
+    }
+
+    private IsKeyLatched(key : number ) : boolean {
+        if(this.Engine.IskeyPressed(key)){
+            if(this.keyLatchState[key] == false) {
+                this.keyLatchState[key] = true;
+                return true;
+            }        
+        }
+        else {
+            this.keyLatchState[key] = false;
+        }
+        return false;
+    }
+
+    private IsKeyPressed(key : number ) : boolean {
+        if(this.Engine.IskeyPressed(key)){
+                return true;
+        } 
+        return false;
     }
 }
 
