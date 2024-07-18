@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "outDir": "Js",
+        "target": "ESNext",
+        "module": "ESNext",
+        "lib": ["esnext", "webworker"],
+        "moduleResolution": "node",
+        "sourceMap": true
+    },
+    "include": ["BuildTerrainThread.worker.ts"]
+}

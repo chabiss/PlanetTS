@@ -1,0 +1,22 @@
+# Ignore node_modules
+node_modules/
+
+# Ignore build output directories
+dist/
+build/
+Js/
+
+# Ignore TypeScript build artifacts
+*.tsbuildinfo
+
+# Ignore environment variable files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -5,6 +5,8 @@
     "three": "^0.158.0"
   },
   "devDependencies": {
-    "@types/dat.gui": "^0.7.11"
+    "@types/dat.gui": "^0.7.11",
+    "@types/node": "^20.13.0",
+    "worker-loader": "^3.0.8"
   }
 }

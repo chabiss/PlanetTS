@@ -3,9 +3,10 @@
         "outDir": "Js",
         "target": "ESNext",
         "module": "ESNext",
-        "lib": ["dom", "es2015"],
+        "lib": ["dom", "ESNext"],
         "moduleResolution": "node",
         "sourceMap": true,
         //"outFile": "./js/PlanetTs.js"
-    }
+    },
+    //"exclude": ["BuildTerrainThread.worker.ts"]
 }

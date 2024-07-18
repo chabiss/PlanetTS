@@ -662,6 +662,12 @@ class TerrainChunkManager {
         }
         return false;
     }
+    ProcessChunckMultiThreadRebuildQueue() {
+        // This method will process the chunk rebuild queue in a multi-threaded fashion
+        // The idea is to have a pool of worker threads that will process the chunk rebuild queue
+        // The worker threads will be responsible for generating the mesh of the chunk
+        // The main thread will be responsible for committing the mesh to the scene
+    }
     Update(worldPosition, forceRebuild = false) {
         // Process the mesh generation queue
         let moreToRebuild = this.ProcessChunkRebuildQueue();
