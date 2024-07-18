@@ -35,12 +35,10 @@ export class WorkerThread {
 export class WorkerThreadsManager {
     // create pool of workers
     private workers: WorkerThread[];
-    private numWorkers: number;
     private onWorkerComplete : (data: any) => void;
 
     constructor(script: string, numWorkers: number, onWorkerComplete: (data: any) => void) {
         this.workers = Array.from({ length: numWorkers }, () => new WorkerThread(script, this));
-        this.numWorkers = numWorkers;
         this.onWorkerComplete = onWorkerComplete;
     }
 

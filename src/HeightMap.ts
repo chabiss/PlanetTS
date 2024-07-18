@@ -1,18 +1,19 @@
 import * as THREE from 'three'
-import * as ThreeTsEngine from './ThreeTsEngine.js'
-import * as MathHelper from './MathHelper.js'
+import * as ThreeTsEngine from './ThreeTsEngine.ts'
+import * as MathHelper from './MathHelper.ts'
 
 export class HeightMap implements ThreeTsEngine.IHeightGenerator {
-    private imageWidth : number;
-    private imageHeight : number;
+    private imageWidth! : number;
+    private imageHeight! : number;
     private engine : ThreeTsEngine.GraphicEngine;
     private heightmapFile : string;
-    private Texture : THREE.Texture;
-    private imageData : ImageData;
+    //@ts-ignore: TS6133
+    private Texture! : THREE.Texture;
+    private imageData! : ImageData;
 
     constructor(engine? : ThreeTsEngine.GraphicEngine ,  heightmapFile? : string, onLoaded? : (heightMap : HeightMap) => void) {
-        this.engine = engine;
-        this.heightmapFile = heightmapFile;
+        this.engine = engine!;
+        this.heightmapFile = heightmapFile!;
         this.engine?.GetTexture(this.heightmapFile, (texture) => {
             this.Texture = texture;
             this.imageData = this.GetImageData(texture);
@@ -27,8 +28,8 @@ export class HeightMap implements ThreeTsEngine.IHeightGenerator {
         canvas.width = texture.width;
         canvas.height = texture.height;
         let context = canvas.getContext('2d');
-        context.drawImage(texture, 0, 0);
-        return context.getImageData(0, 0, texture.width, texture.height);
+        context?.drawImage(texture, 0, 0);
+        return context!?.getImageData(0, 0, texture.width, texture.height);
     }
     
     private GetPixel(x : number, y : number) : number {
@@ -53,6 +54,7 @@ export class HeightMap implements ThreeTsEngine.IHeightGenerator {
         return height;
     }
 
+    // @ts-ignore                               
     GeHeightFromNCoord(x : number, y : number, z : number) : number {
         let x1 = x * this.imageWidth;
         let y1 = y * this.imageHeight; 

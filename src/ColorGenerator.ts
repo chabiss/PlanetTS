@@ -2,22 +2,33 @@ import * as THREE from "three"
 import * as MathHelper from './MathHelper.js'
 import * as ThreeTsEngine from './ThreeTsEngine.js'
 
+//@ts-ignore: TS6133
 const _WHITE = new THREE.Color(0x808080);
 
 const _DEEP_OCEAN = new THREE.Color(0x20020FF);
 const _SHALLOW_OCEAN = new THREE.Color(0x8080FF);
+//@ts-ignore: TS6133
 const _BEACH = new THREE.Color(0xd9d592);
 const _SNOW = new THREE.Color(0xFFFFFF);
+//@ts-ignore: TS6133
 const _FOREST_TROPICAL = new THREE.Color(0x4f9f0f);
+//@ts-ignore: TS6133
 const _FOREST_TEMPERATE = new THREE.Color(0x2b960e);
+//@ts-ignore: TS6133
 const _FOREST_BOREAL = new THREE.Color(0x29c100);
 
+//@ts-ignore: TS6133
 const _GREEN = new THREE.Color(0x80FF80);
+//@ts-ignore: TS6133
 const _RED = new THREE.Color(0xFF8080);
+//@ts-ignore: TS6133
 const _BLACK = new THREE.Color(0x000000);
 
+//@ts-ignore: TS6133
 const _MIN_CELL_SIZE = 500;
+//@ts-ignore: TS6133
 const _MIN_CELL_RESOLUTION = 128;
+//@ts-ignore: TS6133
 const _PLANET_RADIUS = 4000;
 
 export class HyposemetricTints {
@@ -28,7 +39,7 @@ export class HyposemetricTints {
   // http://www.shadedrelief.com/hypso/hypso.html
 
     constructor(_heightGenerator : ThreeTsEngine.IHeightGenerator) {
-      const _colourLerp = (t, p0, p1) => {
+      const _colourLerp = (t:any, p0:any, p1:any) => {
         const c = p0.clone();
   
         return c.lerp(p1, t);
@@ -56,7 +67,7 @@ export class HyposemetricTints {
       this._heightGenerator = _heightGenerator;
     }
   
-    Get(x, y, z) {
+    Get(x:any, y:any, z:any) {
       const m = this._heightGenerator.GeHeightFromNCoord(x, y, z);
       const h = z / 100.0;
   

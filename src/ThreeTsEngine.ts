@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 import {GUI} from "dat.gui";
 
 export class GraphicEngine {
@@ -55,7 +55,7 @@ export class GraphicEngine {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000000);
         this.renderer =  new THREE.WebGLRenderer({
-            canvas: document.querySelector('#target')
+            canvas: document.querySelector('#target')!
         });
         window.addEventListener('resize', ()=>{
             this.OnWindowResize();
@@ -157,7 +157,7 @@ export class GraphicEngine {
             throw new Error("DetachSceneNode error: Scenenode is not found in the scene");
         }
         sceneEntity.Detach();
-        sceneEntity.Engine = null;
+        sceneEntity.Engine = null!;
         this.sceneEntities.splice(index, 1);    
     }
 
@@ -187,13 +187,17 @@ export class GraphicEngine {
 
         // if the texture is already loaded, return it
         if (this.textures[texturePath] != null) {
-            onLoad(this.textures[texturePath]);
+            if (onLoad){
+                onLoad(this.textures[texturePath]);    
+            }
         }
 
         // Wait for texture to be loaded
         this.textureLoader.load(texturePath, (result) => {
             this.textures[texturePath] = result.image;
-            onLoad(result.image);
+            if (onLoad) {
+                onLoad(result.image);
+            }
         });
     }
 
@@ -216,8 +220,8 @@ export class GraphicEngine {
 }
 
 export abstract class SceneEntity {
-    private graphicEngine : GraphicEngine;
-    private isAttached : boolean;
+    private graphicEngine! : GraphicEngine;
+    private isAttached! : boolean;
     private name : string;
 
     constructor(name: string) {

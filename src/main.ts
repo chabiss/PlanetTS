@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import * as PlanetTs from './PlanetTs.js'
 
 //import Worker from 'worker-loader!./BuildTerrainThread.worker.ts';
