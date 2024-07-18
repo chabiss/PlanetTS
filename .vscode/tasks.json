@@ -11,7 +11,18 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"label": "tsc: build - Src/tsconfig.json"
-		}
+			"label": "tsc: build - tsconfig.json"
+		},
+		{
+            "label": "npm: dev",
+            "type": "npm",
+            "script": "dev",
+            "problemMatcher": [],
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
 	]
 }

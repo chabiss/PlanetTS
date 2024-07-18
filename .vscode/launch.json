@@ -8,8 +8,24 @@
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "http://localhost:5174",
+            "url": "http://localhost:5173",
             "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "Run npm dev",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Run npm dev and Launch Chrome",
+            "configurations": ["Run npm dev", "Launch Chrome against localhost"]
         }
     ]
 }
