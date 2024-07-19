@@ -219,9 +219,3 @@ export class GraphicEngine {
         return this.keyState[key];
     }
 }
-
-
-
-export interface IHeightGenerator {
-    GeHeightFromNCoord(x : number, y : number, z : number): number;
-}

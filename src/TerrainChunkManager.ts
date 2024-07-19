@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PlanetTsEngine } from './SceneEntity/PlanetTsEngine.ts'
 import { TerrainChunk, TerrainResolution } from './TerrainChunk.ts'
-import { IHeightGenerator } from './GraphicEngine.ts';
+import { IHeightGenerator } from './IHeighGenerator.ts';
 import { HyposemetricTints } from './ColorGenerator.ts';
 import { QuadTreeChunkNode } from './QuadTreeChunkNode.ts';
 import { SimplexNoiseGenerator } from './NoiseGenerator.ts';
@@ -219,7 +219,7 @@ export class TerrainChunkManager {
     }
 
     private UpdateQuadTrees(worldPosition: THREE.Vector3, forceRebuild: boolean) : void {
-         // This method will walk the quadtree and generate the chunks that are needed
+        // This method will walk the quadtree and generate the chunks that are needed
         // Algorigthm goes like this:
         // 1. Start at the root, walk the children of the quadtree and calculate the distance from worldPosition to each of the children center point
         // 2. For each children visited, ensure their terain chunk is the list of visited chunks

@@ -1,8 +1,9 @@
 import * as THREE from 'three'
 import * as ThreeTsEngine from './GraphicEngine.ts'
 import * as MathHelper from './MathHelper.ts'
+import { IHeightGenerator } from './IHeighGenerator.ts';
 
-export class HeightMap implements ThreeTsEngine.IHeightGenerator {
+export class HeightMap implements IHeightGenerator {
     private imageWidth! : number;
     private imageHeight! : number;
     private engine : ThreeTsEngine.GraphicEngine;

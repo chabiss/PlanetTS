@@ -1,6 +1,6 @@
 import * as THREE from "three"
-import * as MathHelper from './MathHelper.js'
-import * as ThreeTsEngine from './GraphicEngine.js'
+import * as MathHelper from './MathHelper.ts'
+import { IHeightGenerator } from './IHeighGenerator.ts'
 
 //@ts-ignore: TS6133
 const _WHITE = new THREE.Color(0x808080);
@@ -34,11 +34,11 @@ const _PLANET_RADIUS = 4000;
 export class HyposemetricTints {
     private _colourSpline : MathHelper.LinearSpline[];
     private _oceanSpline : MathHelper.LinearSpline;
-    private _heightGenerator : ThreeTsEngine.IHeightGenerator;
+    private _heightGenerator : IHeightGenerator;
   // Cross-blended Hypsometric Tints
   // http://www.shadedrelief.com/hypso/hypso.html
 
-    constructor(_heightGenerator : ThreeTsEngine.IHeightGenerator) {
+    constructor(_heightGenerator : IHeightGenerator) {
       const _colourLerp = (t:any, p0:any, p1:any) => {
         const c = p0.clone();
   
