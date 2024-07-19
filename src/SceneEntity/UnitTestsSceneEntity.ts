@@ -1,8 +1,8 @@
-import * as ThreeTsEngine from './ThreeTsEngine.ts'
-import * as Math from './MathHelper.ts'
-import * as WTM from './WorkerThreadsManager.js';
+import * as Math from '../MathHelper.ts'
+import * as WTM from '../WorkerThreadsManager.ts';
+import { SceneEntity } from './SceneEntity.ts';
 
-export class UniTests extends ThreeTsEngine.SceneEntity {
+export class UniTests extends SceneEntity {
     private runTests : boolean = true;
 
     constructor(){

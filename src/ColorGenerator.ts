@@ -1,6 +1,6 @@
 import * as THREE from "three"
 import * as MathHelper from './MathHelper.js'
-import * as ThreeTsEngine from './ThreeTsEngine.js'
+import * as ThreeTsEngine from './GraphicEngine.js'
 
 //@ts-ignore: TS6133
 const _WHITE = new THREE.Color(0x808080);

@@ -1,4 +1,4 @@
-import * as ThreeTsEngine from './ThreeTsEngine.ts'
+import * as ThreeTsEngine from './GraphicEngine.ts'
 import { createNoise3D } from 'simplex-noise';
 
 export class SimplexNoiseGenerator implements ThreeTsEngine.IHeightGenerator {
