@@ -54,6 +54,6 @@ export class WorkerThreadsManager {
 
     OnExit(worker: WorkerThread, data: any) {
         worker.IsActive = false;
-        this.onWorkerComplete("Worker is complete, data: " + data);
+        this.onWorkerComplete(data);
     }
 }

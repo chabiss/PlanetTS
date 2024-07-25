@@ -1,6 +1,8 @@
+import * as THREE from 'three';
 import * as Math from '../MathHelper.ts'
 import * as WTM from '../WorkerThreadsManager.ts';
 import { SceneEntity } from './SceneEntity.ts';
+import { TerrainResolution } from '../TerrainChunk.ts';
 
 export class UniTests extends SceneEntity {
     private runTests : boolean = true;
@@ -56,17 +58,44 @@ export class UniTests extends SceneEntity {
 
     private TestWorkerThreadsManager() : void {
         let workerThreadsManager = new WTM.WorkerThreadsManager("./BuildTerrainThread.worker.ts", 4, (data: any) => {
-                console.log("Received message from worker", data);
+                console.log("Received message from worker", data.message);
             });
 
-        let mockData = { 
-                        Resolution : 0, 
-                        Radius : 10000, 
-                        CenterLocal : { x: 0, y: 0, z: 0 }, 
-                        Size : { x: 10000, y: 10000 },
-                        Debug: {},
-                        Noise: { scale: 1100, octaves: 6, persistence: 0.71, lacunarity: 1.8, exponentiation: 4.5, height: 300 },
-                        TerrainTintNoise: { scale: 1100, octaves: 6, persistence: 0.71, lacunarity: 1.8, exponentiation: 4.5, height: 300 },
+        let ltw = new THREE.Matrix4();
+
+        let mockData = {
+                        TerrainChunk :{ 
+                            Resolution : 0,
+                            TerrainResolution : TerrainResolution.RES_1, 
+                            Radius : 10000, 
+                            CenterLocal : { 
+                                x: 0, y: 0, z: 0 
+                            }, 
+                            Size : {
+                                 x: 500, 
+                                 y: 500 
+                                },
+                            localToWorld : ltw,
+                            },
+                        Debug: {
+                            QuadTreeDebug : false
+                        },
+                        Noise: {
+                            scale: 1100,
+                            octaves: 6,
+                            persistence: 0.71,
+                            lacunarity: 1.8,
+                            exponentiation: 4.5,
+                            height: 300 
+                        },
+                        TerrainTintNoise: {
+                            scale: 1100,
+                            octaves: 6,
+                            persistence: 0.71,
+                            lacunarity: 1.8,
+                            exponentiation: 4.5,
+                            height: 300 
+                        },
                     }; 
                 
         
