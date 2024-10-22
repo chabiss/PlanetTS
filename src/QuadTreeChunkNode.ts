@@ -183,6 +183,21 @@ export class QuadTreeChunkNode {
         }
     }
 
+    public UpdateQuadTree(context: TraverseContext) {
+        
+        this.Traverse(context);
+
+        // For each chunk in the context, ensure the plane is generated and add it to the scene
+        context.AddedChunkNodes.forEach(chunkNode => {
+            chunkNode.CommitToScene(context.Manager, context.ForceRebuild);
+        });
+
+        // For each removed chunk, remove it from the scene and remove the plane
+        context.RemovedChunkNodes.forEach(chunkNode => {
+            chunkNode.UnCommitFromScene();
+        });
+    }
+
     CommitToScene(terrainChunkManager: TerrainChunkManager,  forceRebuild : boolean = false) : IterableIterator<void> | null {
         let gen = null;
 

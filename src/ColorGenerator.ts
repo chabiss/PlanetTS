@@ -28,8 +28,6 @@ const _BLACK = new THREE.Color(0x000000);
 const _MIN_CELL_SIZE = 500;
 //@ts-ignore: TS6133
 const _MIN_CELL_RESOLUTION = 128;
-//@ts-ignore: TS6133
-const _PLANET_RADIUS = 4000;
 
 export class HyposemetricTints {
     private _colourSpline : MathHelper.LinearSpline[];

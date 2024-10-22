@@ -4,6 +4,7 @@ export abstract class SceneEntity {
     private graphicEngine! : GraphicEngine;
     private isAttached! : boolean;
     private name : string;
+    private keyLatchState: { [key: number]: boolean } = {};
 
     constructor(name: string) {
         this.name = name;
@@ -23,7 +24,27 @@ export abstract class SceneEntity {
 
     set Engine(value : GraphicEngine) {
         this.graphicEngine = value;
-    }   
+    }
+    
+    protected IsKeyLatched(key : number ) : boolean {
+        if(this.Engine.IskeyPressed(key)){
+            if(this.keyLatchState[key] == false) {
+                this.keyLatchState[key] = true;
+                return true;
+            }        
+        }
+        else {
+            this.keyLatchState[key] = false;
+        }
+        return false;
+    }
+
+    protected IsKeyPressed(key : number ) : boolean {
+        if(this.Engine.IskeyPressed(key)){
+                return true;
+        } 
+        return false;
+    }
 
     private set IsAttached(value: boolean) {
         this.isAttached = value;

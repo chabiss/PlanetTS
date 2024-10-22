@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { QuadTreeChunkNode } from './QuadTreeChunkNode.ts';
+import { TerrainChunkManager } from './TerrainChunkManager.ts';
 
 export enum TraverseContextMode {
     ADD,                // In this mode, we're adding chunks to the scene if the meet the criteria for insertion
@@ -13,13 +14,15 @@ export class TraverseContext {
     private position : THREE.Vector3;
     private mode : TraverseContextMode;
     private forceRebuild : boolean;
+    private manager : TerrainChunkManager
 
-    constructor(position : THREE.Vector3, mode : TraverseContextMode = TraverseContextMode.ADD, forceRebuild : boolean = false) {
+    constructor(manager : TerrainChunkManager,  position : THREE.Vector3, mode : TraverseContextMode = TraverseContextMode.ADD, forceRebuild : boolean = false) {
         this.addedChunks = [];
         this.removedChunks = [];
         this.position = position;
         this.mode = mode;
         this.forceRebuild = forceRebuild;
+        this.manager = manager;
     }
     
     public AddChunkNode(chunkNode : QuadTreeChunkNode) : void {
@@ -52,4 +55,6 @@ export class TraverseContext {
     public set Mode(mode : TraverseContextMode) {this.mode = mode; };
     public get Mode() : TraverseContextMode {return this.mode; };
     public get Position() : THREE.Vector3 {return this.position; };
+    public get ForceRebuild() : boolean {return this.forceRebuild; };
+    public get Manager() : TerrainChunkManager {return this.manager; };
 }

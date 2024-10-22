@@ -2,21 +2,33 @@ import * as THREE from 'three';
 import { SimplexNoiseGenerator } from './NoiseGenerator.ts';
 import { HyposemetricTints } from './ColorGenerator.ts';
 import { TerrainResolution } from './TerrainChunk.ts';
+import { TerrainChunkManager } from './TerrainChunkManager.ts';
 
 class TerrainBuildGeometryworker {
-    private heightGenerator! : SimplexNoiseGenerator;
-    private hyposemetricTints! : HyposemetricTints;
+    private static heightGenerator : SimplexNoiseGenerator;
+    private static hyposemetricTints : HyposemetricTints;
     private params : any;
+    private savedNoise : any;
+    private savedTerrainNode : any; 
 
     constructor() {
     }
 
     Init(params : any) {
         console.log("Init");
-        this.heightGenerator = new SimplexNoiseGenerator(params.Noise);
-        this.hyposemetricTints = new HyposemetricTints(new SimplexNoiseGenerator(params.TerrainTintNoise));
-        this.heightGenerator.GeHeightFromNCoord(0, 0, 0);
+
+        if(TerrainBuildGeometryworker.heightGenerator == null || this.savedNoise != params.Noise) {
+            TerrainBuildGeometryworker.heightGenerator = new SimplexNoiseGenerator(params.Noise);
+        }
+
+        if (TerrainBuildGeometryworker.hyposemetricTints == null || this.savedTerrainNode != params.TerrainTintNoise) {
+            TerrainBuildGeometryworker.hyposemetricTints = new HyposemetricTints(new SimplexNoiseGenerator(params.TerrainTintNoise));
+        }
+
         this.params = params;
+        // copy the noised to savedNoise
+        this.savedNoise = Object.assign({}, params.Noise);
+        this.savedTerrainNode = Object.assign({}, params.TerrainTintNoise);
     }
 
     BuildGeometry() : any {
@@ -45,9 +57,11 @@ class TerrainBuildGeometryworker {
             const uvs = [];
             const indices = [];
       
-            const resolution = this.params.TerrainChunk.Resolution;
+            const resolution = this.params.Flags.QuadTreeDebug? 1 :  TerrainChunkManager.GetResolution(this.params.TerrainChunk.TerrainResolution);
+            const chunkId = this.params.TerrainChunk.Id;
             const radius = this.params.TerrainChunk.Radius;
-            const localToWorld = this.params.TerrainChunk.localToWorld;
+            let localToWorldArray : number[]= this.params.TerrainChunk.localToWorld;
+            const localToWorld : THREE.Matrix4 = new THREE.Matrix4().fromArray(localToWorldArray);
             const offset = new THREE.Vector3(this.params.TerrainChunk.CenterLocal.x, this.params.TerrainChunk.CenterLocal.y, this.params.TerrainChunk.CenterLocal.z);
             const width = this.params.TerrainChunk.Size.x;
             const half = width / 2;
@@ -57,33 +71,51 @@ class TerrainBuildGeometryworker {
               for (let y = 0; y < resolution + 1; y++) {
                 const yp = width * y / resolution;
       
-                // Compute position
-                _P.set(xp - half, yp - half, radius);
-                _P.add(offset);
-                _P.normalize();
-                _D.copy(_P);
-                _P.multiplyScalar(radius);
-                _P.z -= radius;
+                 // unless we're in SingleSurfaceDebug mode
+                if(this.params.Flags.SingleFaceDebug) {
+                    // Compute position
+                    _P.set(xp - half, yp - half, 0);
+                    _P.add(offset);
+                    //_P.normalize();
+                    _D.copy(_P);
+                    //_P.multiplyScalar(radius);
+                    //_P.z -= radius;
+                } else {
+                    // Compute position
+                    _P.set(xp - half, yp - half, radius);
+                    _P.add(offset);
+                    _P.normalize();
+                    _D.copy(_P);
+                    _P.multiplyScalar(radius);
+                    _P.z -= radius;
+                } 
       
                 // Compute a world space position to sample noise
                 _W.copy(_P);
                 _W.applyMatrix4(localToWorld);
 
                 
-                const height = this.heightGenerator.GeHeightFromNCoord(_W.x, _W.y, _W.z);
+                const height = TerrainBuildGeometryworker.heightGenerator.GeHeightFromNCoord(_W.x, _W.y, _W.z);
                 // const color = this._params.colourGenerator.Get(_W.x, _W.y, height);
                 let  color = null;
-                if(this.params.Debug.QuadTreeDebug) {
+                if(this.params.Flags.QuadTreeDebug) {
                   color = new THREE.Color();
                   color.setHex(this.ResolutionToColor(this.params.TerrainChunk.TerrainResolution));
                 }else {
-                  color = this.hyposemetricTints.Get(_W.x, _W.y, height);
+                  color = TerrainBuildGeometryworker.hyposemetricTints.Get(_W.x, _W.y, height);
                 }
       
                 // Purturb height along z-vector
                 _H.copy(_D);
-                _H.multiplyScalar(height);
-                _P.add(_H);
+                if(!this.params.Flags.QuadTreeDebug){
+                    if(this.params.Flags.SingleFaceDebug){
+                        _H.z += height;
+                      } else { 
+                        _H.multiplyScalar(height);
+                      }
+                    _P.add(_H);    
+                }
+                  
       
                 positions.push(_P.x, _P.y, _P.z);
                 colors.push(color.r, color.g, color.b);
@@ -162,6 +194,7 @@ class TerrainBuildGeometryworker {
             indicesArray.set(indices);
       
             return {
+              chunkId: chunkId,
               positions: positionsArray,
               colors: coloursArray,
               normals: normalsArray,
@@ -191,7 +224,6 @@ class TerrainBuildGeometryworker {
     }
 }
 
-
 self.onmessage = (m : any) => {
     const terrainBuildGeometryworker = new TerrainBuildGeometryworker();
 
@@ -200,11 +232,7 @@ self.onmessage = (m : any) => {
         console.log("Receiving: Build_Geometry", m.data);
         const result = terrainBuildGeometryworker.BuildGeometry();
 
-        let time = Math.floor(Math.random() * 10000);
-        // wait 4 seconds
-        setTimeout(() => {
         self.postMessage({ message: "Build_Geometry Completed", data: result });
-        }, time);
     }
 }
 export { };

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TerrainChunkManager } from '../TerrainChunkManager.ts';
 import { SceneEntity } from './SceneEntity';
+import { BasicSceneEntity } from './BasicSceneEntity.ts';
 import { HeightMap } from '../HeightMap.ts';
 import { SimplexNoiseGenerator } from '../NoiseGenerator.ts';
 import { PlanetTsEngine } from './PlanetTsEngine.ts';
@@ -14,7 +15,7 @@ export class TerrainSceneEntity extends SceneEntity {
     
     constructor(){
         super("Terrain");
-        this.terrainChunkManager = new TerrainChunkManager(PlanetTsEngine.PlanetRadius);
+        this.terrainChunkManager = new TerrainChunkManager();
         this.cameraPosition = new THREE.Vector3(0,1000,0);         
     }
 
@@ -23,7 +24,14 @@ export class TerrainSceneEntity extends SceneEntity {
         // this.heightMap = new Heightmap.HeightMap(this.Engine, "./resources/043-ue4-heightmap-guide-02.jpg",  (heightMap : Heightmap.HeightMap) => {
         //    this.Rebuild();});
 
-        this.Engine.GuiParams.General = {"Wireframe": false, "QuadTreeDebug": false};
+        this.Engine.GuiParams.General = {
+            "Wireframe": false, 
+            "QuadTreeDebug": false, 
+            "SingleFaceDebug": false, 
+            "PlanetRadius": PlanetTsEngine.PlanetRadius,
+            "MultiThread": true,
+        };
+
         // wireframe
         this.Engine.Gui.__folders["General"].add(this.Engine.GuiParams.General, 'Wireframe').onChange((value : boolean) => {
             this.Engine.EnableFrameMode(value);
@@ -35,6 +43,25 @@ export class TerrainSceneEntity extends SceneEntity {
         this.Engine.Gui.__folders["General"].add(this.Engine.GuiParams.General, 'QuadTreeDebug').onChange((value : boolean) => {
             this.Rebuild();
         });
+
+        // Single face debug
+        // @ts-ignore
+        this.Engine.Gui.__folders["General"].add(this.Engine.GuiParams.General, 'SingleFaceDebug').onChange((value : boolean) => {
+            this.Rebuild();
+        });
+
+        // Planet Radius
+        // @ts-ignore
+        this.Engine.Gui.__folders["General"].add(this.Engine.GuiParams.General, 'PlanetRadius', 100, 100000).onChange((value : number) => {
+            this.Rebuild();
+        });
+
+        // MultiThread
+        // @ts-ignore
+        this.Engine.Gui.__folders["General"].add(this.Engine.GuiParams.General, 'MultiThread').onChange((value : boolean) => {
+            this.Rebuild();
+        });
+
 
         this.Engine.GuiParams.Traces = {"CommitToScene": false, "ChunkManager": false};
         this.Engine.Gui.__folders["Traces"].add(this.Engine.GuiParams.Traces, 'CommitToScene');
@@ -48,7 +75,7 @@ export class TerrainSceneEntity extends SceneEntity {
             "lacunarity": 1.8, 
             "exponentiation": 4.5, 
             "height": 300,
-            "seed": 1};
+            "seed": 0.3};
 
         this.Engine.Gui.addFolder("Noise");
         // @ts-ignore                               
@@ -80,7 +107,12 @@ export class TerrainSceneEntity extends SceneEntity {
         this.Engine.Gui.__folders["Noise"].add(this.Engine.GuiParams.Noise, 'height', 0, 1000).onChange((value : number) => {
             this.Rebuild()
         });
-        
+
+        // @ts-ignore 
+        this.Engine.Gui.__folders["Noise"].add(this.Engine.GuiParams.Noise, 'seed', 0, 1).onChange((value : number) => {
+            this.Rebuild()
+        });
+
         // Noise parameters
         this.Engine.GuiParams.TerrainTintNoise = { 
                                         "scale": 2048.0, 
@@ -89,7 +121,7 @@ export class TerrainSceneEntity extends SceneEntity {
                                         "lacunarity": 2.0, 
                                         "exponentiation": 3.9, 
                                         "height": 1,
-                                        "seed": 2};
+                                        "seed": 0.2};
 
         this.Engine.Gui.addFolder("TerrainTintNoise");
         // @ts-ignore                                                              
@@ -120,6 +152,12 @@ export class TerrainSceneEntity extends SceneEntity {
         this.Engine.Gui.__folders["TerrainTintNoise"].add(this.Engine.GuiParams.TerrainTintNoise, 'height', 0, 1000).onChange((value : number) => {
             this.Rebuild()
         });
+
+        // @ts-ignore 
+        this.Engine.Gui.__folders["TerrainTintNoise"].add(this.Engine.GuiParams.TerrainTintNoise, 'seed', 0, 1).onChange((value : number) => {
+            this.Rebuild()
+        });
+        
         
         // Create a new dictionary of IHeightGenerator
         this.heightGenerators = {
@@ -129,7 +167,7 @@ export class TerrainSceneEntity extends SceneEntity {
             }),
             "simplex" : new SimplexNoiseGenerator(this.Engine.GuiParams.Noise)};
 
-        this.Engine.Camera.position.set(0, 0, PlanetTsEngine.PlanetRadius + 1000);
+        this.Engine.Camera.position.set(0, 0, this.Engine.GuiParams.General.PlanetRadius + 1000);
         this.Engine.Camera.lookAt(0, 0, 0);
 
         // Attach the terrainChunkManager
@@ -137,7 +175,7 @@ export class TerrainSceneEntity extends SceneEntity {
     }
 
     private Rebuild() : void {
-        this.terrainChunkManager.Update(this.cameraPosition, true);
+        this.terrainChunkManager.Rebuild()
     }
 
     Detach(): void {
@@ -148,7 +186,8 @@ export class TerrainSceneEntity extends SceneEntity {
 
     Update(): void {
 
-        // let node = this.Engine.GetSceneEntity("basicNode") as BasicScenenode;
+        //ts-ignore
+        this.Engine.GetSceneEntity("basicNode") as BasicSceneEntity
         // this.cameraPosition =  node.Position();
         this.cameraPosition = this.Engine.CameraPosition();
         

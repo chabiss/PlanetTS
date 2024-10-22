@@ -12,7 +12,6 @@ export enum TerrainResolution {
     RES_6,
 };
 
-
 // @ts-ignore: TS6133
 const PLANEWIDTH = 500;
 // @ts-ignore: TS6133
@@ -22,12 +21,11 @@ const PLANEXRES = 60;
 // @ts-ignore: TS6133
 const planeYRes = 60;
 
-const PLANET_RADIUS = 8000;
-// @ts-ignore: TS6133
-const TERRAIN_CHUNK_DIMENSION = 2000;
 const TERRAIN_MAX_RESOLUTION = TerrainResolution.RES_6;
 
 export class TerrainChunk {
+    private static idgen : number = 0;
+    private id : number = 0;                // Id of the chunk
     private plane! : THREE.Mesh;
     private geometry! : THREE.BufferGeometry;
     private resolution! : TerrainResolution; // resolution of the chunk
@@ -40,8 +38,10 @@ export class TerrainChunk {
     private committed! : boolean;            // Flag to indicate if the chunk is committed to the scene
     private terrainChunkManager : TerrainChunkManager; // Reference to the terrain chunk manager managing the chunks
 
+    public get Id() : number {return this.id; };
     public get Plane() : THREE.Mesh {return this.plane; };
     public get Resolution() : TerrainResolution {return this.resolution; };
+    public get CenterLocal() : THREE.Vector3 {return this.centerLocal; };
     public get CenterWorld() : THREE.Vector3 {return this.centerWorld; };
     public get Dimensions() : THREE.Vector3 {return this.dimensions; };
     public get Diagonal() : number {return this.bounds.getSize(new THREE.Vector3()).length(); };
@@ -60,6 +60,7 @@ export class TerrainChunk {
     }
 
     public Init(resolution : TerrainResolution, bounds : THREE.Box3, locaToWorld : THREE.Matrix4 | null = null) : void {
+        this.id = TerrainChunk.idgen++;
         this.resolution = resolution;
         this.bounds = bounds;
         this.centerLocal = bounds.getCenter(new THREE.Vector3());
@@ -73,8 +74,11 @@ export class TerrainChunk {
         this.centerWorld = this.centerLocal.clone();
         this.localToWorld = localToWorld.clone();
         this.centerWorld.applyMatrix4(this.localToWorld);
-        this.centerWorld.normalize()
-        this.centerWorld.multiplyScalar(radius);
+
+        if(!this.terrainChunkManager.Engine.GuiParams.General.SingleFaceDebug){
+            this.centerWorld.normalize()
+            this.centerWorld.multiplyScalar(radius);
+        }
     }
 
 
@@ -94,6 +98,31 @@ export class TerrainChunk {
         if (group != null){
             group.remove(this.plane);
         }
+    }
+
+    public UpdateGeometry(data : any) : void {
+        
+        const positions = data.positions;
+        const colors = data.colors;
+        const normals = data.normals;
+        const tangents = data.tangents;
+        const uvs = data.uvs;
+        const indices = data.indices;
+
+        this.geometry.setAttribute(
+            'position', new THREE.Float32BufferAttribute(positions, 3));
+        this.geometry.setAttribute(
+            'color', new THREE.Float32BufferAttribute(colors, 3));
+        this.geometry.setAttribute(
+            'normal', new THREE.Float32BufferAttribute(normals, 3));
+        this.geometry.setAttribute(
+            'tangent', new THREE.Float32BufferAttribute(tangents, 4));
+        this.geometry.setAttribute(
+            'uv', new THREE.Float32BufferAttribute(uvs, 2));
+        this.geometry.setIndex(
+            new THREE.BufferAttribute(new Uint32Array(indices), 1));
+
+        this.needRebuild = false;    
     }
 
     public Show() : void {
@@ -163,8 +192,8 @@ export class TerrainChunk {
       const uvs = [];
       const indices = [];
 
-      const resolution = this.Manager.GetResolution(this.resolution);
-      const radius = PLANET_RADIUS;
+      const resolution = this.terrainChunkManager.Engine.GuiParams.General.QuadTreeDebug? 1 : TerrainChunkManager.GetResolution(this.resolution);
+      const radius = this.terrainChunkManager.Engine.GuiParams.General.PlanetRadius;
       const offset = this.centerLocal
       const width = this.Dimensions.x;
       const half = width / 2;
@@ -173,15 +202,26 @@ export class TerrainChunk {
         const xp = width * x / resolution;
         for (let y = 0; y < resolution + 1; y++) {
           const yp = width * y / resolution;
-
-          // Compute position
-          _P.set(xp - half, yp - half, radius);
-          _P.add(offset);
-          _P.normalize();
-          _D.copy(_P);
-          _P.multiplyScalar(radius);
-          _P.z -= radius;
-
+          
+          // unless we're in SingleSurfaceDebug mode
+          if(this.terrainChunkManager.Engine.GuiParams.General.SingleFaceDebug) {
+            // Compute position
+            _P.set(xp - half, yp - half, 0);
+            _P.add(offset);
+            //_P.normalize();
+            _D.copy(_P);
+            //_P.multiplyScalar(radius);
+            //_P.z -= radius;
+          } else {
+            // Compute position
+            _P.set(xp - half, yp - half, radius);
+            _P.add(offset);
+            _P.normalize();
+            _D.copy(_P);
+            _P.multiplyScalar(radius);
+            _P.z -= radius;
+          } 
+    
           // Compute a world space position to sample noise
           _W.copy(_P);
           if (this.localToWorld != null)
@@ -201,8 +241,14 @@ export class TerrainChunk {
 
           // Purturb height along z-vector
           _H.copy(_D);
-          _H.multiplyScalar(height);
-          _P.add(_H);
+          if(!this.terrainChunkManager.Engine.GuiParams.General.QuadTreeDebug){
+            if(this.terrainChunkManager.Engine.GuiParams.General.SingleFaceDebug){
+                _H.z += height;
+              } else { 
+                _H.multiplyScalar(height);
+              }
+              _P.add(_H);    
+          }
 
           positions.push(_P.x, _P.y, _P.z);
           colors.push(color.r, color.g, color.b);

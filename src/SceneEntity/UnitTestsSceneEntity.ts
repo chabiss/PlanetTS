@@ -65,7 +65,6 @@ export class UniTests extends SceneEntity {
 
         let mockData = {
                         TerrainChunk :{ 
-                            Resolution : 0,
                             TerrainResolution : TerrainResolution.RES_1, 
                             Radius : 10000, 
                             CenterLocal : { 
@@ -77,8 +76,9 @@ export class UniTests extends SceneEntity {
                                 },
                             localToWorld : ltw,
                             },
-                        Debug: {
-                            QuadTreeDebug : false
+                        Flags: {
+                            QuadTreeDebug : false,
+                            SingleFaceDebug : false
                         },
                         Noise: {
                             scale: 1100,
@@ -99,10 +99,10 @@ export class UniTests extends SceneEntity {
                     }; 
                 
         
-        workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
-        workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
-        workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
-        workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
+        // workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
+        // workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
+        // workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
+        // workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
         try {
             workerThreadsManager.Schedule({ message: "Build_Geometry", data: mockData});
         } catch (e) {

@@ -6,7 +6,7 @@ export class SimplexNoiseGenerator implements IHeightGenerator {
     private params : any;
     
     constructor(param : any) {
-        this.noiseFunc = createNoise3D(() => Math.random());
+        this.noiseFunc = createNoise3D(() => param.seed);
         this.params = param;
     }
 

@@ -1,5 +1,4 @@
 import * as THREE from "three"
-import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js";
 import {GUI} from "dat.gui";
 import { SceneEntity } from './SceneEntity/SceneEntity';
 
@@ -8,7 +7,6 @@ export class GraphicEngine {
     private camera: THREE.PerspectiveCamera;
     private renderer : THREE.WebGLRenderer;
     private sceneEntities : SceneEntity[];
-    private orbitControls : OrbitControls;
     private gui : GUI;
     private guiParams : any;
 
@@ -49,6 +47,16 @@ export class GraphicEngine {
         KEYPAD_9: 105,
         KEYPAD_PERIOD: 110,
         KEYPAD_ENTER: 13, 
+        KEY_1 : 49,
+        KEY_2 : 50,
+        KEY_3 : 51,
+        KEY_4 : 52,
+        KEY_5 : 53,
+        KEY_6 : 54,
+        KEY_7 : 55,
+        KEY_8 : 56,
+        KEY_9 : 57,
+        KEY_0 : 48,    
     };
     
 
@@ -82,12 +90,6 @@ export class GraphicEngine {
         // const gridHelper = new THREE.GridHelper(500, 50);
         // this.scene.add(gridHelper);
 
-        // Create OrbitControl
-        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.orbitControls.target.set(0,0,0);
-        this.orbitControls.object.position.set(0, 0, 300);
-        this.orbitControls.update();
-
         // Create the GUI
         this.gui = new GUI();
         this.gui.addFolder("General");
@@ -108,6 +110,7 @@ export class GraphicEngine {
     get Gui() : GUI { return this.gui; }
     get GuiParams() : any { return this.guiParams; }
     get Camera() : THREE.PerspectiveCamera { return this.camera; }
+    get DomElement() : HTMLCanvasElement { return this.renderer.domElement; }
 
     OnWindowResize() : void {
         this.camera.aspect = window.innerWidth / window.innerHeight;

@@ -1,27 +1,26 @@
 import * as THREE from 'three';
 import { SceneEntity } from './SceneEntity';
 import { GraphicEngine } from '../GraphicEngine';
-import { PlanetTsEngine } from './PlanetTsEngine';
 
 export class BasicSceneEntity extends SceneEntity {
     private mesh : THREE.Mesh;
     private rotateAngle : number = 0;
     private increment : number = 0.0001;
-    private keyLatchState: { [key: number]: boolean } = {};
     private followMode : boolean = false;
     private rotationMode : boolean = true;
     
     constructor(){
         super("basicNode");
         const sphereGeometry = new THREE.SphereGeometry(10, 8, 6);
-        const material = new THREE.MeshStandardMaterial({color: 0xFFFF00});
+        const material = new THREE.MeshStandardMaterial({color: 0xFF00FF});
         this.mesh = new THREE.Mesh(sphereGeometry, material);
-        this.mesh.position.set(0, 0, PlanetTsEngine.PlanetRadius);
     }
 
     Attach(): void {
         this.Engine.AddObject3DToScene(this.mesh);
         this.Engine.Camera.rotateX(-Math.PI / 2);
+
+        this.mesh.position.set(0, 0, this.Engine.GuiParams.General.PlanetRadius+300);
     }
 
     Detach(): void {
@@ -30,8 +29,8 @@ export class BasicSceneEntity extends SceneEntity {
 
     Update(): void {
         this.rotateAngle += this.increment;
-        let position = new THREE.Vector3(0, 0, PlanetTsEngine.PlanetRadius+300);
-        let positionLookAt = new THREE.Vector3(PlanetTsEngine.PlanetRadius, 0, 0);
+        let position = new THREE.Vector3(0, 0, this.Engine.GuiParams.General.PlanetRadius+200);
+        let positionLookAt = new THREE.Vector3(this.Engine.GuiParams.General.PlanetRadiusPlanetRadius, 0, 0);
         let matrix = new THREE.Matrix4();
         matrix.makeRotationY(this.rotateAngle);
         position.applyMatrix4(matrix);   
@@ -46,7 +45,8 @@ export class BasicSceneEntity extends SceneEntity {
             if(this.rotationMode){
                 positionLookAt.applyMatrix4(matrix);
                 this.Engine.Camera.lookAt(positionLookAt.x, positionLookAt.y, positionLookAt.z);
-                this.Engine.Camera.rotateZ(-Math.PI / 2);    
+                this.Engine.Camera.rotateZ(-Math.PI / 2);
+                this.Engine.Camera.rotateX(Math.PI / 2);    
             }
         }
          
@@ -124,25 +124,5 @@ export class BasicSceneEntity extends SceneEntity {
 
     Position() : THREE.Vector3 {
         return this.mesh.position;
-    }
-
-    private IsKeyLatched(key : number ) : boolean {
-        if(this.Engine.IskeyPressed(key)){
-            if(this.keyLatchState[key] == false) {
-                this.keyLatchState[key] = true;
-                return true;
-            }        
-        }
-        else {
-            this.keyLatchState[key] = false;
-        }
-        return false;
-    }
-
-    private IsKeyPressed(key : number ) : boolean {
-        if(this.Engine.IskeyPressed(key)){
-                return true;
-        } 
-        return false;
     }
 }
