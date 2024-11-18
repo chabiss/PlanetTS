@@ -57,7 +57,7 @@ export class UniTests extends SceneEntity {
     }
 
     private TestWorkerThreadsManager() : void {
-        let workerThreadsManager = new WTM.WorkerThreadsManager("./BuildTerrainThread.worker.ts", 4, (data: any) => {
+        let workerThreadsManager = new WTM.WorkerThreadsManager("./BuildTerrainThread.worker.ts", 1, (data: any) => {
                 console.log("Received message from worker", data.message);
             });
 

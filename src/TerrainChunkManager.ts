@@ -49,7 +49,7 @@ export class TerrainChunkManager {
         this.garbadgeCollectQueue = [];
         this.chunkInWokerThreads = new Map<number, TerrainChunk>();
         this.activeGen = null;
-        this.workerThreadsManager = new WorkerThreadsManager("./BuildTerrainThread.worker.ts", 4, (data: any) => {        
+        this.workerThreadsManager = new WorkerThreadsManager("./BuildTerrainThread.worker.ts", 10, (data: any) => {        
             this.TerrainChunkWorkCompleted(data);
           });
         }
