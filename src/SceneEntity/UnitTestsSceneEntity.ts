@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as Math from '../MathHelper.ts'
 import * as WTM from '../WorkerThreadsManager.ts';
 import { SceneEntity } from './SceneEntity.ts';
-import { TerrainResolution } from '../TerrainChunk.ts';
+import { TerrainResolution } from '../TerrainChunkManager.ts';
 
 export class UniTests extends SceneEntity {
     private runTests : boolean = true;

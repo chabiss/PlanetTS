@@ -1,27 +1,6 @@
 import * as THREE from 'three';
-import { TerrainChunkManager } from './TerrainChunkManager';
+import { TerrainChunkManager, TerrainResolution } from './TerrainChunkManager';
 
-
-// The different resolution mapping we have for the terrain
-export enum TerrainResolution {
-    RES_1,
-    RES_2,
-    RES_3,
-    RES_4,
-    RES_5,
-    RES_6,
-};
-
-// @ts-ignore: TS6133
-const PLANEWIDTH = 500;
-// @ts-ignore: TS6133
-const PLANEHEIGHT = 500;
-// @ts-ignore: TS6133
-const PLANEXRES = 60;
-// @ts-ignore: TS6133
-const planeYRes = 60;
-
-const TERRAIN_MAX_RESOLUTION = TerrainResolution.RES_6;
 
 export class TerrainChunk {
     private static idgen : number = 0;
@@ -51,7 +30,7 @@ export class TerrainChunk {
     public get NeedRebuild() : boolean {return this.needRebuild; };
     public set NeedRebuild(value : boolean) {this.needRebuild = value; };
     public get Manager() : TerrainChunkManager {return this.terrainChunkManager; };
-    static get MaxResolution() : TerrainResolution { return TERRAIN_MAX_RESOLUTION; }
+    static get MaxResolution() : TerrainResolution { return TerrainChunkManager.GetMaxResolution(); }
 
 
     constructor(terrainChunkManager : TerrainChunkManager , resolution : TerrainResolution, bounds : THREE.Box3, locaToWorld : THREE.Matrix4 | null = null) {

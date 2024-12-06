@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import { SimplexNoiseGenerator } from './NoiseGenerator.ts';
 import { HyposemetricTints } from './ColorGenerator.ts';
-import { TerrainResolution } from './TerrainChunk.ts';
-import { TerrainChunkManager } from './TerrainChunkManager.ts';
+import { TerrainChunkManager, TerrainResolution  } from './TerrainChunkManager.ts';
 
 class TerrainBuildGeometryworker {
     private static heightGenerator : SimplexNoiseGenerator;

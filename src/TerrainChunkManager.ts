@@ -1,12 +1,22 @@
 import * as THREE from 'three';
 import { PlanetTsEngine } from './SceneEntity/PlanetTsEngine'
-import { TerrainChunk, TerrainResolution } from './TerrainChunk'
+import { TerrainChunk } from './TerrainChunk'
 import { IHeightGenerator } from './IHeighGenerator';
 import { HyposemetricTints } from './ColorGenerator';
 import { QuadTreeChunkNode } from './QuadTreeChunkNode';
 import { SimplexNoiseGenerator } from './NoiseGenerator';
 import { TraverseContext, TraverseContextMode } from './TraverseContext';
 import { WorkerThreadsManager } from './WorkerThreadsManager';
+
+// The different resolution mapping we have for the terrain
+export enum TerrainResolution {
+    RES_1,
+    RES_2,
+    RES_3,
+    RES_4,
+    RES_5,
+    RES_6,
+};
 
 export class TerrainChunkManager {
     // keep track of the current wolrd position
@@ -25,18 +35,17 @@ export class TerrainChunkManager {
     private saveGarbadgeCollectorSize : number = 0;
     private workerThreadsManager : WorkerThreadsManager;
     private chunkInWokerThreads : Map<number, TerrainChunk>
+    private static maxResolution : TerrainResolution = TerrainResolution.RES_6;
     
-
-
     // Resolution for each relolution settings
-    private static TerrainResolutionPresets : number[] = [
-        400, 
-        200, 
-        200, 
-        100, 
-        100, 
-        100,
-        ];
+    private static TerrainResolutionPresets : { [key in TerrainResolution]: number } = {
+        [TerrainResolution.RES_1]: 50,
+        [TerrainResolution.RES_2]: 50,
+        [TerrainResolution.RES_3]: 100,
+        [TerrainResolution.RES_4]: 200,
+        [TerrainResolution.RES_5]: 400,
+        [TerrainResolution.RES_6]: 600,
+    };
 
     // Create the 6 QuadTreeChunk and Nodes for each of the faces
     private quadTreeChunkNodes : QuadTreeChunkNode[];
@@ -61,6 +70,10 @@ export class TerrainChunkManager {
     get CachedPosition() : THREE.Vector3 {return this.cachedPosition; };
     get Engine() : PlanetTsEngine {return this.engine; };
     get TerrainMaterial() : THREE.MeshStandardMaterial {return this.terrainMaterial; };
+
+    public static GetMaxResolution() : TerrainResolution {
+        return TerrainChunkManager.maxResolution;
+    }
     
     static GetResolution(resolution : TerrainResolution) : number {
         return TerrainChunkManager.TerrainResolutionPresets[resolution];
