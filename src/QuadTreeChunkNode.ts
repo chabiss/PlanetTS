@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { TerrainChunk, TerrainResolution } from "./TerrainChunk.ts";
+import { TerrainChunk} from "./TerrainChunk.ts";
 import { TraverseContext, TraverseContextMode } from './TraverseContext.ts';
-import { TerrainChunkManager } from './TerrainChunkManager.ts';
+import { TerrainChunkManager, TerrainResolution } from './TerrainChunkManager.ts';
 
 export class QuadTreeChunkNode {
     private chunk : TerrainChunk | null;
