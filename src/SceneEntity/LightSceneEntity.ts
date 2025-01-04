@@ -23,6 +23,6 @@ export class LightSceneEntity extends SceneEntity {
         this.Engine.RemoveObject3DFromScene(this.ambientLight);
     }
 
-    Update(): void {
+    Update(_frameTime : number): void {
     }
 }

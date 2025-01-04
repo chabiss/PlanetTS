@@ -55,5 +55,5 @@ export abstract class SceneEntity {
     // Detach the SceneNode to the Scene
     abstract Detach() : void
     // Update the SceneNode
-    abstract Update(): void
+    abstract Update(_frameTime : number): void
 }

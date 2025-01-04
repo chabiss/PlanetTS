@@ -27,7 +27,7 @@ export class BasicSceneEntity extends SceneEntity {
         this.Engine.RemoveObject3DFromScene(this.mesh);
     }
 
-    Update(): void {
+    Update(_frameTime : number): void {
         this.rotateAngle += this.increment;
         let position = new THREE.Vector3(0, 0, this.Engine.GuiParams.General.PlanetRadius+200);
         let positionLookAt = new THREE.Vector3(this.Engine.GuiParams.General.PlanetRadiusPlanetRadius, 0, 0);

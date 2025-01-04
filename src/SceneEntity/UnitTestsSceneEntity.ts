@@ -16,7 +16,7 @@ export class UniTests extends SceneEntity {
     Detach(): void {
         
     }
-    Update(): void {
+    Update(_frameTime : number): void {
         if (this.runTests){
             this.DoPerformTest();
             this.runTests = false;
@@ -79,6 +79,9 @@ export class UniTests extends SceneEntity {
                         Flags: {
                             QuadTreeDebug : false,
                             SingleFaceDebug : false
+                        },
+                        Traces: {
+                            ChunkManager : false                       
                         },
                         Noise: {
                             scale: 1100,

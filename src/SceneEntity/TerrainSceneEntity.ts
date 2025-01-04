@@ -184,13 +184,13 @@ export class TerrainSceneEntity extends SceneEntity {
         this.terrainChunkManager.Detach(this.Engine);
     }
 
-    Update(): void {
+    Update(_frameTime : number): void {
 
         //ts-ignore
         this.Engine.GetSceneEntity("basicNode") as BasicSceneEntity
         // this.cameraPosition =  node.Position();
         this.cameraPosition = this.Engine.CameraPosition();
         
-        this.terrainChunkManager.Update(this.cameraPosition);
+        this.terrainChunkManager.Update(this.cameraPosition, _frameTime);
     }
 }

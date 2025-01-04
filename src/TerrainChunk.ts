@@ -16,6 +16,7 @@ export class TerrainChunk {
     private needRebuild! : boolean;          // Flag to indicate if the chunk needs to be rebuild
     private committed! : boolean;            // Flag to indicate if the chunk is committed to the scene
     private terrainChunkManager : TerrainChunkManager; // Reference to the terrain chunk manager managing the chunks
+    private cacheGeometryData : any;         // Cache geometry data
 
     public get Id() : number {return this.id; };
     public get Plane() : THREE.Mesh {return this.plane; };
@@ -79,7 +80,19 @@ export class TerrainChunk {
         }
     }
 
-    public UpdateGeometry(data : any) : void {
+    public CacheGeometry(data: any ) : void {
+        this.cacheGeometryData = data;
+    }
+    
+    public UpdateGeometryFromCache(frameTime : number) : void {
+        
+        if(this.cacheGeometryData != null){
+            this.UpdateGeometry(this.cacheGeometryData, frameTime);
+            this.cacheGeometryData = null;
+        }
+    }
+
+    public UpdateGeometry(data : any, _frameTime : number ) : void {
         
         const positions = data.positions;
         const colors = data.colors;
@@ -88,18 +101,28 @@ export class TerrainChunk {
         const uvs = data.uvs;
         const indices = data.indices;
 
+        // safe time now
+        let start = Date.now();
+
         this.geometry.setAttribute(
             'position', new THREE.Float32BufferAttribute(positions, 3));
         this.geometry.setAttribute(
             'color', new THREE.Float32BufferAttribute(colors, 3));
         this.geometry.setAttribute(
-            'normal', new THREE.Float32BufferAttribute(normals, 3));
+            'normal', new THREE.Float32BufferAttribute(normals, 3));    
         this.geometry.setAttribute(
-            'tangent', new THREE.Float32BufferAttribute(tangents, 4));
+            'tangent', new THREE.Float32BufferAttribute(tangents, 4));    
         this.geometry.setAttribute(
             'uv', new THREE.Float32BufferAttribute(uvs, 2));
+    
         this.geometry.setIndex(
             new THREE.BufferAttribute(new Uint32Array(indices), 1));
+        
+        // Log the time it took to update the geometry
+        let end = Date.now();
+        let buildTime = end - start;
+
+        this.Manager.Engine.Log("ChunkManager", "Updating geometry for chunk " + this.Id + " Resolution " + this.resolution.toString() + " with " + positions.length + " vertices and " + indices.length + " indices." + " build time: " + buildTime + " ms");
 
         this.needRebuild = false;    
     }

@@ -31,8 +31,6 @@ class TerrainBuildGeometryworker {
     }
 
     BuildGeometry() : any {
-        console.log("BuildGeometry");
-
             const _D = new THREE.Vector3();
             const _D1 = new THREE.Vector3();
             const _D2 = new THREE.Vector3();
@@ -64,6 +62,10 @@ class TerrainBuildGeometryworker {
             const offset = new THREE.Vector3(this.params.TerrainChunk.CenterLocal.x, this.params.TerrainChunk.CenterLocal.y, this.params.TerrainChunk.CenterLocal.z);
             const width = this.params.TerrainChunk.Size.x;
             const half = width / 2;
+
+            if (this.params.Traces.ChunkManager == true) {
+                console.log("BuildGeometry for ChunkId: ", chunkId);
+            }
       
             for (let x = 0; x < resolution + 1; x++) {
               const xp = width * x / resolution;
@@ -194,12 +196,12 @@ class TerrainBuildGeometryworker {
       
             return {
               chunkId: chunkId,
-              positions: positionsArray,
-              colors: coloursArray,
-              normals: normalsArray,
-              tangents: tangentsArray,
-              uvs: uvsArray,
-              indices: indicesArray
+              positions: positionsArray.buffer,
+              colors: coloursArray.buffer,
+              normals: normalsArray.buffer,
+              tangents: tangentsArray.buffer,
+              uvs: uvsArray.buffer,
+              indices: indicesArray.buffer
             };
           }
 
@@ -228,7 +230,6 @@ self.onmessage = (m : any) => {
 
     if(m.data.message == "Build_Geometry") {
         terrainBuildGeometryworker.Init(m.data.data);
-        console.log("Receiving: Build_Geometry", m.data);
         const result = terrainBuildGeometryworker.BuildGeometry();
 
         self.postMessage({ message: "Build_Geometry Completed", data: result });

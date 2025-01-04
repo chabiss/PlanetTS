@@ -24,7 +24,7 @@ export class CameraSceneEntity extends SceneEntity {
 
     }
 
-    Update(): void {
+    Update(_frameTime : number): void {
         // if the page down key is pressed, move the mesh position to -10 in y direction
         if (this.IsKeyLatched(GraphicEngine.Keys.SPACE)) {
             this.enabled = !this.enabled;

@@ -7,6 +7,9 @@ import { CameraSceneEntity } from './CameraSceneEntity.ts';
 
 const PLANET_RADIUS = 8000;
 export class PlanetTsEngine extends ThreeTsEngine.GraphicEngine {
+    Start() {
+        super.Start();
+    }
     
     constructor(){
         super();
@@ -16,8 +19,8 @@ export class PlanetTsEngine extends ThreeTsEngine.GraphicEngine {
         this.AttachSceneEntity(new TerrainSceneEntity());
         this.AttachSceneEntity(new UniTests());
     }
-    Render() : void {
-        super.Render();
+    Render(frameTime : number) : void {
+        super.Render(frameTime);
     }
 
     static get PlanetRadius() : number {

@@ -3,6 +3,7 @@ import {GUI} from "dat.gui";
 import { SceneEntity } from './SceneEntity/SceneEntity';
 
 export class GraphicEngine {
+
     private scene: THREE.Scene;
     private camera: THREE.PerspectiveCamera;
     private renderer : THREE.WebGLRenderer;
@@ -10,10 +11,20 @@ export class GraphicEngine {
     private gui : GUI;
     private guiParams : any;
 
+    // RAF
+    private previousRaf : number = 0;
+
     // Texture manager
     private textureLoader : THREE.TextureLoader;
     private loadingManager : THREE.LoadingManager;
     private textures : any;
+
+    // Frame counter
+    private frameCounter : HTMLParagraphElement;
+    private CountInterval : number = 4;
+    private frameCount : number = 0;
+    private cumulativeFps : number = 0;
+    
 
     // create a dictionay of keys that map to a boolean value
     private keyState : {[key: number]: boolean} = {};
@@ -105,6 +116,15 @@ export class GraphicEngine {
         this.loadingManager = new THREE.LoadingManager();
         this.textureLoader = new THREE.TextureLoader(this.loadingManager);
         this.textures = {};
+
+        // Initialize the frame counter
+        // Get the #framecounter element
+        this.frameCounter = document.querySelector('#framecounter')!;
+        this.frameCounter.innerText = "FPS: 0";
+    }
+
+    Start() {
+        this.RAf();
     }
 
     get Gui() : GUI { return this.gui; }
@@ -118,12 +138,13 @@ export class GraphicEngine {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-    Render() : void {
+    Render(frameTime : number) : void {
         this.sceneEntities.forEach(node =>{
-            node.Update();
+            node.Update(frameTime);
         });
 
         this.renderer.render(this.scene, this.camera);
+        this.UpdateFrameCounter(frameTime);
     }
     
     AddObject3DToScene(mesh: THREE.Object3D) : void {
@@ -220,5 +241,36 @@ export class GraphicEngine {
             return false;
         }
         return this.keyState[key];
+    }
+
+    UpdateFrameCounter(frameTime : number) {
+
+        let fps = Math.round(1000 / frameTime);
+        if (frameTime > 125) {
+            console.log("Fps: ", fps, " frameCount: ", this.frameCount);
+        }
+        this.frameCount++;
+        this.cumulativeFps += fps;
+
+        if (this.frameCount >= this.CountInterval) {
+            let display = Math.round((this.cumulativeFps / this.CountInterval)).toString()
+            if (display == "Infinity") {
+                display = "0";
+            }
+            this.frameCounter.innerText = "FPS: " + display;
+            this.frameCount = 0;
+            this.cumulativeFps = 0;
+        }
+    }
+
+    RAf() {
+        requestAnimationFrame((t) => {
+            if (this.previousRaf == 0) {
+                this.previousRaf = t;
+            }
+            this.Render(t - this.previousRaf);
+            this.RAf();
+            this.previousRaf = t;
+        });
     }
 }

@@ -28,23 +28,23 @@ export class TerrainChunkManager {
     private terrainMaterial! : THREE.MeshStandardMaterial;
     // create a queue of IterableIterator<void> to generate the mesh
     private chunkRebuildQueue : TerrainChunk[];
-    
+    private chunkPendingCommitQueue : TerrainChunk[];
     private garbadgeCollectQueue : TerrainChunk[];
     private activeGen : IterableIterator<void> | null;
     private needUpdate! : boolean;
     private saveGarbadgeCollectorSize : number = 0;
     private workerThreadsManager : WorkerThreadsManager;
     private chunkInWokerThreads : Map<number, TerrainChunk>
-    private static maxResolution : TerrainResolution = TerrainResolution.RES_6;
+    private static maxResolution : TerrainResolution = TerrainResolution.RES_5;
     
     // Resolution for each relolution settings
     private static TerrainResolutionPresets : { [key in TerrainResolution]: number } = {
         [TerrainResolution.RES_1]: 50,
-        [TerrainResolution.RES_2]: 50,
-        [TerrainResolution.RES_3]: 100,
+        [TerrainResolution.RES_2]: 100,
+        [TerrainResolution.RES_3]: 150,
         [TerrainResolution.RES_4]: 200,
         [TerrainResolution.RES_5]: 400,
-        [TerrainResolution.RES_6]: 600,
+        [TerrainResolution.RES_6]: 800,
     };
 
     // Create the 6 QuadTreeChunk and Nodes for each of the faces
@@ -55,6 +55,7 @@ export class TerrainChunkManager {
         this.cachedPosition = new THREE.Vector3(0,0,0);     
         this.quadTreeChunkNodes = [];
         this.chunkRebuildQueue = [];
+        this.chunkPendingCommitQueue = [];
         this.garbadgeCollectQueue = [];
         this.chunkInWokerThreads = new Map<number, TerrainChunk>();
         this.activeGen = null;
@@ -173,11 +174,19 @@ export class TerrainChunkManager {
         return false;
     }
 
-    public ProcessChunckMultiThreadRebuildQueue() : void {
+    public ProcessChunckMultiThreadRebuildQueue(frameTime : number) : void {
         // This method will process the chunk rebuild queue in a multi-threaded fashion
         // The idea is to have a pool of worker threads that will process the chunk rebuild queue
         // The worker threads will be responsible for generating the mesh of the chunk
         // The main thread will be responsible for committing the mesh to the scene
+        
+        if (this.chunkPendingCommitQueue.length > 0) {
+            let chunk = this.chunkPendingCommitQueue.shift();
+            if (chunk != null){
+                chunk.UpdateGeometryFromCache(frameTime);
+            }
+        }    
+
 
         let noThreadsAvailable: Boolean = true;
         while(this.chunkRebuildQueue.length > 0 && noThreadsAvailable) {
@@ -201,6 +210,9 @@ export class TerrainChunkManager {
                     Flags: {
                         QuadTreeDebug : this.engine.GuiParams.General.QuadTreeDebug,
                         SingleFaceDebug : this.engine.GuiParams.General.SingleFaceDebug
+                    },
+                    Traces: {
+                        ChunkManager : this.engine.GuiParams.Traces.ChunkManager                       
                     },
                     Noise: {
                         scale: this.engine.GuiParams.Noise.scale,
@@ -243,19 +255,32 @@ export class TerrainChunkManager {
         // find the chunk in the chunkInWokerThreads
         let chunk = this.chunkInWokerThreads.get(payload.data.chunkId);
         if(chunk != null) {
-            // Commit the chunk to the scene
-            chunk.UpdateGeometry(payload.data);
+            // Cache the geometry for next update on main thread
+            chunk.CacheGeometry(payload.data);
+            this.chunkPendingCommitQueue.push(chunk);
             // Remove the chunk from the chunkInWokerThreads
             this.chunkInWokerThreads.delete(payload.data.chunkId);
         }   
     }
 
-    public Update(worldPosition : THREE.Vector3, forceRebuild: boolean = false) : void {
+    public Update(worldPosition : THREE.Vector3, _frameTime : number,  forceRebuild : boolean = false) : void {
         
+        // if (_frameTime > 8.5){
+        //    this.engine.Log("ChunkManager", "Update Frametime: " + _frameTime);
+        // }
+
+
         let moreToRebuild = false;
+
+        let start = new Date().getTime();
+
+        // if (this.chunkPendingCommitQueue.length > 0) {
+        //     moreToRebuild = true
+        // }
+
         // Process the mesh generation queue
         if (this.engine.GuiParams.General.MultiThread) {
-            this.ProcessChunckMultiThreadRebuildQueue();
+            this.ProcessChunckMultiThreadRebuildQueue(_frameTime);
         } else {
             moreToRebuild = this.ProcessChunkSingleThreadRebuildQueue();
         }
@@ -280,6 +305,12 @@ export class TerrainChunkManager {
                 this.engine.Log("ChunkManager", "Garbadge Collector Size: " + this.garbadgeCollectQueue.length);
             }
             this.saveGarbadgeCollectorSize = this.garbadgeCollectQueue.length;
+        }
+
+        let end = new Date().getTime();
+
+        if ((end - start) > _frameTime){
+            this.engine.Log("ChunkManager", "Warning!!!! Update took: " + (end - start) + " ms");
         }
     }
 
