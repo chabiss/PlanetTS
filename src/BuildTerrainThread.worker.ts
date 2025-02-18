@@ -208,18 +208,23 @@ class TerrainBuildGeometryworker {
         private ResolutionToColor(resolution : TerrainResolution) : number {
         switch(resolution) {
             case TerrainResolution.RES_1:
-                return 0xFFFFFF;
+                return 0xFFFFFF; // white
             case TerrainResolution.RES_2:
-                return 0x00FF00;
+                return 0x00FF00; // green
             case TerrainResolution.RES_3:
-                return 0x0000FF;
+                return 0x0000FF; // blue
             case TerrainResolution.RES_4:
-                return 0x00FFFF;
+                return 0x00FFFF; // cyan
             case TerrainResolution.RES_5:
-                return 0xFFFF00;
+                return 0xFFFF00; // yellow
             case TerrainResolution.RES_6:
-                return 0xFF00FF;
-            default:
+                return 0xFF00FF; // magenta
+            case TerrainResolution.RES_7:
+                return 0xFF0000; // red
+            case TerrainResolution.RES_8:
+                return 0xFFFFFF; // white
+    
+                default:
                 return 0xFF0000;
         }
     }

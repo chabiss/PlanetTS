@@ -16,6 +16,8 @@ export enum TerrainResolution {
     RES_4,
     RES_5,
     RES_6,
+    RES_7,
+    RES_8
 };
 
 export class TerrainChunkManager {
@@ -35,16 +37,18 @@ export class TerrainChunkManager {
     private saveGarbadgeCollectorSize : number = 0;
     private workerThreadsManager : WorkerThreadsManager;
     private chunkInWokerThreads : Map<number, TerrainChunk>
-    private static maxResolution : TerrainResolution = TerrainResolution.RES_5;
+    private static maxResolution : TerrainResolution = TerrainResolution.RES_8;
     
     // Resolution for each relolution settings
     private static TerrainResolutionPresets : { [key in TerrainResolution]: number } = {
-        [TerrainResolution.RES_1]: 50,
-        [TerrainResolution.RES_2]: 100,
-        [TerrainResolution.RES_3]: 150,
-        [TerrainResolution.RES_4]: 200,
-        [TerrainResolution.RES_5]: 400,
-        [TerrainResolution.RES_6]: 800,
+        [TerrainResolution.RES_1]: 100,
+        [TerrainResolution.RES_2]: 200,
+        [TerrainResolution.RES_3]: 300,
+        [TerrainResolution.RES_4]: 300,
+        [TerrainResolution.RES_5]: 300,
+        [TerrainResolution.RES_6]: 300,
+        [TerrainResolution.RES_7]: 300,
+        [TerrainResolution.RES_8]: 300,
     };
 
     // Create the 6 QuadTreeChunk and Nodes for each of the faces
